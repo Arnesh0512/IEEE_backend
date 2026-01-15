@@ -17,6 +17,6 @@ def register_user(user: UserCreate):
         )
 
 
-    user_collection.insert_one(user)
+    user_collection.insert_one(user.model_dump(mode="json"))
 
     return {"message": "User registered successfully"}
