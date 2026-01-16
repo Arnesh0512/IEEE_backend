@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Literal, Optional
-from datetime import date, time
+from datetime import date,time
 from fastapi import Form
 
 
@@ -15,13 +15,11 @@ class EventCreate(BaseModel):
 
     event_type: Optional[Literal["free", "paid"]] = None
 
-    event_thumbnail_id: Optional[str] = None  # GridFS file _id (string)
-
     venue: Optional[str] = None
     person_incharge: Optional[str] = None
 
     @classmethod
-    def as_form(
+    def convert_to_form(
         cls,
         event_name: str = Form(...),
         event_description: Optional[str] = Form(None),

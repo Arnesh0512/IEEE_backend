@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, HttpUrl
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 
 class UserCreate(BaseModel):
     name: str
