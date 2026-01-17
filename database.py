@@ -2,13 +2,10 @@
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from gridfs import GridFS
-from dotenv import load_dotenv
-import os
 from datetime import datetime
+from utils.reader import uri
 
-load_dotenv()  
 
-uri = os.getenv("connection_string")
 
 client = MongoClient(uri, server_api=ServerApi('1'))
 
@@ -19,6 +16,6 @@ db_name = str(start_yr)+"-"+str(end_year)
 
 
 db = client[db_name]
-user_collection = db["user_reg"]
-event_collection = db["event_reg"]
+user_collection = db["user"]
+event_collection = db["event"]
 fs = GridFS(db)

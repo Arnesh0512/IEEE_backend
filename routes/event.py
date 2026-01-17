@@ -12,6 +12,7 @@ def create_event(
     image: UploadFile | None = File(None)
 ):
     event_data = event.model_dump(exclude_none=True, mode="json")
+    event_data["registered_user"] = []
 
     if image:
         file_id = fs.put(
