@@ -19,3 +19,8 @@ db = client[db_name]
 user_collection = db["user"]
 event_collection = db["event"]
 fs = GridFS(db)
+
+
+cred_db = client["credentials"]
+admin_collection = cred_db["admin"]
+superadmin_collection = cred_db["superadmin"]

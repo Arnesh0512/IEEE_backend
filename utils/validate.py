@@ -6,6 +6,10 @@ from datetime import datetime, timezone
 from utils.reader import GOOGLE_CLIENT_ID, JWT_SECRET, JWT_ALGO
 
 
+
+
+
+
 def verify_google_token(token: str) -> dict:
     try:
         idinfo = id_token.verify_oauth2_token(

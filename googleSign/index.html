@@ -5,28 +5,18 @@
   <title>Google Sign In</title>
 
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      display: flex;
-      height: 100vh;
-      justify-content: center;
-      align-items: center;
-    }
-  </style>
+  <link rel="stylesheet" href="index.css">
 </head>
 <body>
 
-  <div id="login">
-    <div
-      id="g_id_onload"
-      data-client_id="239161451898-ilpruu0evotd6li2t21gnsphc8uqplsh.apps.googleusercontent.com"
-      data-callback="handleGoogleLogin">
-    </div>
+  <h2>User Sign In</h2>
+  <div id="user-signin"></div>
 
-    <div class="g_id_signin"></div>
-  </div>
+  <h2>Admin Sign In</h2>
+  <div id="admin-signin"></div>
+
+  <h2>Super-Admin Sign In</h2>
+  <div id="superadmin-signin"></div>
 
   <script src="script.js"></script>
 </body>
