@@ -1,17 +1,15 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from datetime import datetime
-from database import admin_collection, superadmin_collection
+from database import admin_collection
 from schemas.admin import AdminCreate
-from bson import ObjectId
 from utils.time import IST
 from utils.validate import verify_access_token
+from utils.verify import verify_superadmin_payload, verify_admin
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 security = HTTPBearer()
 
 router = APIRouter(prefix="/super", tags=["Super"])
-
-
 
 
 @router.post("/register-admin")
@@ -22,25 +20,12 @@ def create_admin(
     token = credentials.credentials
     payload = verify_access_token(token)
 
-    super_id = payload.get("superadmin_id")
-    super_email = payload.get("email").lower()
-
-    if not super_id or not super_email:
-        raise HTTPException(status_code=401, detail="Invalid token payload")
-    if payload.get("role") != "superadmin":
-        raise HTTPException(status_code=403, detail="Insufficient privileges")
-    exists = superadmin_collection.find_one({
-        "_id": ObjectId(super_id),
-        "email": super_email
-    })
-    if not exists:
-        raise HTTPException(status_code=404, detail="SuperAdmin not found")
-    
+    super_id,super_email = verify_superadmin_payload(payload)    
     
 
     admin_data = admin.model_dump(mode="json")
     admin_data["created_on"] = datetime.now(IST).isoformat()
-    admin_data["created_by"] = ObjectId(super_id)
+    admin_data["created_by"] = {"super_id": super_id, "super_email":super_email}
     admin_data["email"] = admin.email.lower()
 
 
@@ -56,3 +41,59 @@ def create_admin(
 
 
 
+
+
+
+
+
+
+
+@router.get("/admins")
+def get_all_admins(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+    ):
+
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    verify_superadmin_payload(payload)
+
+    admins = list(admin_collection.find())
+
+    for admin in admins:
+        admin["_id"] = str(admin["_id"])
+        admin["created_by"]["super_id"] = str(admin["created_by"]["super_id"])
+
+    return admins
+
+
+
+
+
+
+
+
+@router.delete("/delete-admin")
+def delete_admin(
+    admin_id: str,
+    email: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
+    payload = verify_access_token(token)
+
+    verify_superadmin_payload(payload)
+
+    admin_obj_id, admin_email = verify_admin(admin_id, email)
+
+    result = admin_collection.delete_one({
+        "_id": admin_obj_id,
+        "email": admin_email
+    })
+
+    if result.deleted_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Admin not found"
+        )
+
+    return {"message": "Admin deleted successfully"}

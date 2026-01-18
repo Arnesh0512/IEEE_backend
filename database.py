@@ -18,6 +18,7 @@ db_name = str(start_yr)+"-"+str(end_year)
 db = client[db_name]
 user_collection = db["user"]
 event_collection = db["event"]
+team_collection = db["team"]
 fs = GridFS(db)
 
 

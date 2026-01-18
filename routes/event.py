@@ -3,14 +3,24 @@ from fastapi.responses import StreamingResponse
 from bson import ObjectId
 from database import event_collection, fs
 from schemas.event import EventCreate
+from utils.validate import verify_access_token
+from utils.verify import verify_admin_payload, verify_event
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-router = APIRouter(prefix="/events", tags=["Events"])
+security = HTTPBearer()
+
+router = APIRouter(prefix="admin/events", tags=["Events"])
 
 @router.post("")
 def create_event(
     event: EventCreate = Depends(EventCreate.convert_to_form),
-    image: UploadFile | None = File(None)
+    image: UploadFile | None = File(None),
+    credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    verify_admin_payload(payload)
+
     event_data = event.model_dump(exclude_none=True, mode="json")
     event_data["registered_user"] = []
 
@@ -26,20 +36,30 @@ def create_event(
     return {"message": "Event created"}
 
 
+
+
+
 @router.patch("/{event_id}")
 def update_event(
     event_id: str,
     event: EventCreate = Depends(EventCreate.convert_to_form),
-    image: UploadFile | None = File(None)
+    image: UploadFile | None = File(None),
+    credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
-    update_data = event.model_dump(exclude_none=True)
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    verify_admin_payload(payload)
 
+
+    update_data = event.model_dump(exclude_none=True)
     if image:
         file_id = fs.put(image.file)
         update_data["event_thumbnail_id"] = str(file_id)
 
+    event_id = verify_event(event_id)
+
     result = event_collection.update_one(
-        {"_id": ObjectId(event_id)},
+        {"_id": event_id},
         {"$set": update_data}
     )
 
@@ -49,21 +69,56 @@ def update_event(
     return {"message": "Event updated"}
 
 
+
+
+
+
+
 @router.delete("/{event_id}")
-def delete_event(event_id: str):
-    event = event_collection.find_one({"_id": ObjectId(event_id)})
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
+def delete_event(event_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    verify_admin_payload(payload)
+
+    event_id = verify_event(event_id)
+    event = event_collection.find_one({"_id": event_id})
+    
 
     if "event_thumbnail_id" in event:
         fs.delete(ObjectId(event["event_thumbnail_id"]))
 
-    event_collection.delete_one({"_id": ObjectId(event_id)})
+    event_collection.delete_one({"_id": event_id})
     return {"message": "Event deleted"}
 
 
+
+
+@router.get("/image/{image_id}")
+def get_event_image(image_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    verify_admin_payload(payload)
+    
+    try:
+        grid_out = fs.get(ObjectId(image_id))
+    except Exception:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    return StreamingResponse(grid_out, media_type=grid_out.content_type)
+
+
+
+
 @router.get("")
-def get_all_events():
+def get_all_events(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    verify_admin_payload(payload)
+
     events = list(event_collection.find())
 
     for event in events:
@@ -74,11 +129,4 @@ def get_all_events():
     return events
 
 
-@router.get("/image/{image_id}")
-def get_event_image(image_id: str):
-    try:
-        grid_out = fs.get(ObjectId(image_id))
-    except Exception:
-        raise HTTPException(status_code=404, detail="Image not found")
 
-    return StreamingResponse(grid_out, media_type=grid_out.content_type)

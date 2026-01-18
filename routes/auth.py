@@ -7,7 +7,7 @@ from utils.validate import verify_google_token,create_access_token
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
-@router.post("/user")
+@router.get("/user")
 def google_auth_user(data: dict):
 
     token = data.get("token")
@@ -32,6 +32,7 @@ def google_auth_user(data: dict):
     payload = {
         "user_id":user_id,
         "email": email,
+        "role": "user",
         "exp": datetime(today.year + (1 if today.month > 6 else 0),6,30, 18,30)
     }
     
@@ -44,7 +45,7 @@ def google_auth_user(data: dict):
 
 
 
-@router.post("/admin")
+@router.get("/admin")
 def google_auth_admin(data: dict):
 
     token = data.get("token")
@@ -81,7 +82,7 @@ def google_auth_admin(data: dict):
 
 
 
-@router.post("/superadmin")
+@router.get("/superadmin")
 def google_auth_superadmin(data: dict):
 
     token = data.get("token")
