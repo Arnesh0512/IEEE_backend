@@ -8,7 +8,7 @@ from verify.superadmin import verify_superadmin_by_email
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
-@router.get("/user")
+@router.post("/user")
 def google_auth_user(data: dict):
 
     idinfo = verify_google_token(data)
@@ -42,7 +42,7 @@ def google_auth_user(data: dict):
 
 
 
-@router.get("/admin")
+@router.post("/admin")
 def google_auth_admin(data: dict):
 
 
@@ -69,7 +69,7 @@ def google_auth_admin(data: dict):
 
 
 
-@router.get("/superadmin")
+@router.post("/superadmin")
 def google_auth_superadmin(data: dict):
 
     idinfo = verify_google_token(data)

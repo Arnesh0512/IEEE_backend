@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.responses import StreamingResponse
 from datetime import datetime
-from database import client, user_collection, event_collection, team_collection
+from database import client,fs, user_collection, event_collection, team_collection
 from schemas.user import UserCreate
 from utils.time import IST
 from verify.token import verify_access_token
@@ -8,7 +9,10 @@ from verify.user import verify_user_payload
 from verify.event import verify_event, verify_eventRegistry
 from verify.team import verify_team_by_id, verify_in_team
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from utils.pattern import DB_PATTERN
+from utils.pattern import DB_PATTERN, verify_session_db
+from bson import ObjectId
+from gridfs import GridFS
+
 
 security = HTTPBearer()
 
@@ -58,7 +62,7 @@ def register_event(
     timestamp = datetime.now(IST).isoformat()
 
 
-    verify_eventRegistry(event_id, user_id, "Y", user, event)
+    verify_eventRegistry(event_id, user_id, "N", user, event)
         
     user_collection.update_one(
         {"_id": user_id},
@@ -83,7 +87,6 @@ def get_user_details(credentials: HTTPAuthorizationCredentials = Depends(securit
 
     del user["_id"]
     del user["registered_event"]
-    del user["remark"]
 
     return {
         "success": True,
@@ -125,7 +128,7 @@ def get_registered_events_teams(credentials: HTTPAuthorizationCredentials = Depe
 
     for reg in user.get("registered_event", []):
         event_id = str(reg["event_id"])
-        team_id = str(reg.get("team_id")) if reg.get("team_id") else None
+        team_id = str(reg.get("team")) if reg.get("team") else None
 
         result.append({
             "event_id": event_id,
@@ -149,10 +152,10 @@ def get_registered_event(
     event,event_id = verify_event(event_id)
     verify_eventRegistry(event_id, user_id, "Y", user, event)
 
-    del event["_id"]
-    del event["registered_user"]
-    del event["registered_team"]
-    del event["remark"]
+    event.pop("_id", None)
+    event.pop("registered_user", None)
+    event.pop("registered_team", None)
+    event.pop("remark", None)
 
     return {
         "success": True,
@@ -255,7 +258,7 @@ def get_all_archieved_events(
             continue
 
         db = client[db_name]
-        event_collection = db.event_collection
+        event_collection = db["event"]
 
         events_cursor = event_collection.find(
             {},
@@ -277,4 +280,51 @@ def get_all_archieved_events(
         "success": True,
         "data": archive_data
     }
+
+
+@router.get("/image/{image_id}")
+def get_image_current_year(
+    image_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    user, user_id, email = verify_user_payload(payload)
+
+
+    try:
+        grid_out = fs.get(ObjectId(image_id))
+    except Exception:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    return StreamingResponse(
+        grid_out,
+        media_type=grid_out.content_type or "image/jpeg"
+    )
+
+
+@router.get("/image/{year}/{image_id}")
+def get_image_from_archive(
+    year: str,
+    image_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    user, user_id, email = verify_user_payload(payload)
+
+    year = verify_session_db(year)
+
+    archive_db = client[year]
+    fs = GridFS(archive_db)
+
+    try:
+        grid_out = fs.get(ObjectId(image_id))
+    except Exception:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    return StreamingResponse(
+        grid_out,
+        media_type=grid_out.content_type or "image/jpeg"
+    )
 

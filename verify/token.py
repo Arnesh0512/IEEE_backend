@@ -6,7 +6,11 @@ from utils.reader import GOOGLE_CLIENT_ID, JWT_SECRET, JWT_ALGO
 
 
 
-def verify_google_token(data: str|None) -> dict:
+def verify_google_token(data: dict|None) -> dict:
+
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=400, detail="Invalid input")
+
 
     token = data.get("token")
     if not token:

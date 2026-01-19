@@ -1,5 +1,4 @@
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
-from fastapi.responses import StreamingResponse
 from bson import ObjectId
 from database import event_collection, fs
 from schemas.event import EventCreate
@@ -57,8 +56,11 @@ def update_event(
 
     update_data = event.model_dump(exclude_none=True)
     if image:
+        if "event_thumbnail_id" in event:
+            fs.delete(ObjectId(event["event_thumbnail_id"]))
         file_id = fs.put(image.file)
         update_data["event_thumbnail_id"] = str(file_id)
+
 
     event, event_id = verify_event(event_id)
 
@@ -103,41 +105,6 @@ def delete_event(event_id: str,
     event_collection.delete_one({"_id": event_id})
     return {"message": "Event deleted"}
 
-
-
-
-@router.get("/image/{image_id}")
-def get_event_image(image_id: str,
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-):
-    token = credentials.credentials
-    payload = verify_access_token(token)
-    verify_sudo_payload(payload)
-    
-    try:
-        grid_out = fs.get(ObjectId(image_id))
-    except Exception:
-        raise HTTPException(status_code=404, detail="Image not found")
-
-    return StreamingResponse(grid_out, media_type=grid_out.content_type)
-
-
-
-
-@router.get("")
-def get_all_events(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    token = credentials.credentials
-    payload = verify_access_token(token)
-    verify_sudo_payload(payload)
-
-    events = list(event_collection.find())
-
-    for event in events:
-        event["_id"] = str(event["_id"])
-        if "event_thumbnail_id" in event:
-            event["event_thumbnail_url"] = f"/events/image/{event['event_thumbnail_id']}"
-
-    return events
 
 
 

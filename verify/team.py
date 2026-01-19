@@ -33,10 +33,6 @@ def verify_teamName(team_name: str, event_id: ObjectId, type:str) -> Tuple[dict|
 
 
 
-        
-from fastapi import HTTPException, status
-from bson import ObjectId
-
 def verify_teamMember(
     team: dict,
     user_id: ObjectId,
@@ -141,7 +137,7 @@ def verify_team_by_id(team_id: str) -> Tuple[dict,ObjectId]:
     if not team:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Event not found"
+            detail="Team not found"
         )
     
     return (team,team_oid)
