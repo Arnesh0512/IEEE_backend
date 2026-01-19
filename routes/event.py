@@ -10,7 +10,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 security = HTTPBearer()
 
-router = APIRouter(prefix="root/events", tags=["Events"])
+router = APIRouter(prefix="/root/events", tags=["Events"])
 
 @router.post("")
 def create_event(

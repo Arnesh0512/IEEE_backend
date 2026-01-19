@@ -1,8 +1,8 @@
 from fastapi import HTTPException, status
 from bson import ObjectId
 from typing import Tuple
-from admin import verify_admin_payload, verify_admin, verify_admin_by_email, verify_admin_by_id
-from superadmin import verify_superadmin_payload, verify_superadmin, verify_superadmin_by_email, verify_superadmin_by_id
+from .admin import verify_admin_payload, verify_admin, verify_admin_by_email, verify_admin_by_id
+from .superadmin import verify_superadmin_payload, verify_superadmin, verify_superadmin_by_email, verify_superadmin_by_id
 
 def verify_sudo_payload(payload: dict) -> Tuple[ObjectId, str, str]:
 
