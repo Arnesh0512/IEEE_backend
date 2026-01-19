@@ -2,15 +2,16 @@ from fastapi import HTTPException, status
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from jose import jwt, JWTError
-from datetime import datetime, timezone
 from utils.reader import GOOGLE_CLIENT_ID, JWT_SECRET, JWT_ALGO
 
 
 
+def verify_google_token(data: str|None) -> dict:
 
-
-
-def verify_google_token(token: str) -> dict:
+    token = data.get("token")
+    if not token:
+        raise HTTPException(status_code=400, detail="Token missing")
+    
     try:
         idinfo = id_token.verify_oauth2_token(
             token,

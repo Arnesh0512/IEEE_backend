@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends
 from datetime import datetime
 from database import team_collection, user_collection, event_collection
 from utils.time import IST
-from utils.validate import verify_access_token
-from utils.verify import verify_user_payload, verify_event, verify_eventRegistry
-from utils.verify import  verify_teamName , verify_teamMember, verify_teamLeader
+from verify.token import verify_access_token
+from verify.user import verify_user_payload
+from verify.event import verify_event, verify_eventRegistry
+from verify.team import  verify_teamName , verify_teamMember, verify_teamLeader, verify_user_not_in_team, verify_is_team_allowed
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from bson import ObjectId
 
@@ -15,18 +16,21 @@ router = APIRouter(prefix="/team", tags=["Teams"])
 
 
 
-def set_user_team(user_id: ObjectId, event_id: ObjectId, team_id: ObjectId | None):
+def set_user_team(
+    user_id: ObjectId,
+    event_id: ObjectId,
+    team_id: ObjectId | None
+):
+    if team_id is None:
+        update = {"$unset": {"registered_event.$.team": ""}}
+    else:
+        update = {"$set": {"registered_event.$.team": team_id}}
+
     user_collection.update_one(
-        {"_id": user_id,
-        "registered_event.event_id": event_id},
-        {"$set": {"registered_event.$.team": team_id}}
+        {"_id": user_id, "registered_event.event_id": event_id},
+        update
     )
 
-    event_collection.update_one(
-        {"_id": event_id,
-        "registered_user.user_id": user_id},
-        {"$set": {"registered_user.$.team": team_id}}
-    )
 
 
 
@@ -42,8 +46,10 @@ def signup_team(
     payload = verify_access_token(token)
     user_id ,user_email = verify_user_payload(payload)
     event_id = verify_event(event_id)
+    verify_is_team_allowed(event_id)
     verify_eventRegistry(event_id, user_id)
 
+    verify_user_not_in_team(user_id, event_id)
     team_name = verify_teamName(team_name, event_id, "N")
 
 
@@ -59,6 +65,10 @@ def signup_team(
     team_id = team["_id"]
 
     set_user_team(user_id, event_id, team_id)
+    event_collection.update_one(
+        {"_id": event_id},
+        {"$push": {"registered_team":team_id}}
+    )
 
 
     return {"message": "Team registered successfully"}
@@ -76,7 +86,9 @@ def register_event(
     payload = verify_access_token(token)
     user_id , email = verify_user_payload(payload)
     event_id = verify_event(event_id)
+    verify_is_team_allowed(event_id)
     verify_eventRegistry(event_id, user_id)
+    verify_user_not_in_team(user_id, event_id)
 
     team_name = verify_teamName(team_name, event_id, "Y")
     team = verify_teamMember(team_name, event_id, user_id, "N")
@@ -105,6 +117,7 @@ def delete_team(
     payload = verify_access_token(token)
     leader_id, email = verify_user_payload(payload)
     event_id = verify_event(event_id)
+    verify_is_team_allowed(event_id)
     verify_eventRegistry(event_id, leader_id)
 
     team_name = verify_teamName(team_name, event_id, "Y")
@@ -119,6 +132,11 @@ def delete_team(
 
     team_collection.delete_one({"_id": team_id})
 
+    event_collection.update_one(
+        {"_id": event_id},
+        {"$pull": {"registered_team":team_id}}
+    )
+
     return {"message": "Team deleted successfully"}
 
 
@@ -132,6 +150,7 @@ def leave_team(
     payload = verify_access_token(token)
     user_id, _ = verify_user_payload(payload)
     event_id = verify_event(event_id)
+    verify_is_team_allowed(event_id)
     verify_eventRegistry(event_id, user_id)
 
 

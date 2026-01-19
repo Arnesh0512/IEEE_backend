@@ -3,13 +3,14 @@ from fastapi.responses import StreamingResponse
 from bson import ObjectId
 from database import event_collection, fs
 from schemas.event import EventCreate
-from utils.validate import verify_access_token
-from utils.verify import verify_admin_payload, verify_event
+from verify.token import verify_access_token
+from verify.sudo import verify_sudo_payload
+from verify.event import verify_event
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 security = HTTPBearer()
 
-router = APIRouter(prefix="admin/events", tags=["Events"])
+router = APIRouter(prefix="root/events", tags=["Events"])
 
 @router.post("")
 def create_event(
@@ -19,10 +20,13 @@ def create_event(
 ):
     token = credentials.credentials
     payload = verify_access_token(token)
-    verify_admin_payload(payload)
+    verify_sudo_payload(payload)
 
     event_data = event.model_dump(exclude_none=True, mode="json")
     event_data["registered_user"] = []
+
+    if event_data["event_team_allowed"] == True:
+        event_data["registered_team"] = []
 
     if image:
         file_id = fs.put(
@@ -48,7 +52,7 @@ def update_event(
 ):
     token = credentials.credentials
     payload = verify_access_token(token)
-    verify_admin_payload(payload)
+    verify_sudo_payload(payload)
 
 
     update_data = event.model_dump(exclude_none=True)
@@ -57,6 +61,14 @@ def update_event(
         update_data["event_thumbnail_id"] = str(file_id)
 
     event_id = verify_event(event_id)
+
+    if update_data["event_team_allowed"] == True:
+        update_data["registered_team"] = []
+    else:
+        event_collection.update_one(
+            {"_id":event_id},
+            {"$unset":{"registered_team": ""}}
+        )
 
     result = event_collection.update_one(
         {"_id": event_id},
@@ -80,7 +92,7 @@ def delete_event(event_id: str,
 ):
     token = credentials.credentials
     payload = verify_access_token(token)
-    verify_admin_payload(payload)
+    verify_sudo_payload(payload)
 
     event_id = verify_event(event_id)
     event = event_collection.find_one({"_id": event_id})
@@ -101,7 +113,7 @@ def get_event_image(image_id: str,
 ):
     token = credentials.credentials
     payload = verify_access_token(token)
-    verify_admin_payload(payload)
+    verify_sudo_payload(payload)
     
     try:
         grid_out = fs.get(ObjectId(image_id))
@@ -117,7 +129,7 @@ def get_event_image(image_id: str,
 def get_all_events(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
     payload = verify_access_token(token)
-    verify_admin_payload(payload)
+    verify_sudo_payload(payload)
 
     events = list(event_collection.find())
 

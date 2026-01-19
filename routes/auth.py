@@ -1,20 +1,17 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter
 from datetime import datetime, date
-from database import user_collection, admin_collection, superadmin_collection
+from database import user_collection
 from utils.time import IST
-from utils.validate import verify_google_token,create_access_token
-
+from verify.token import verify_google_token,create_access_token
+from verify.admin import verify_admin_by_email
+from verify.superadmin import verify_superadmin_by_email
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 @router.get("/user")
 def google_auth_user(data: dict):
 
-    token = data.get("token")
-    if not token:
-        raise HTTPException(status_code=400, detail="Token missing")
-
-    idinfo = verify_google_token(token)
+    idinfo = verify_google_token(data)
     email = idinfo["email"].lower()
 
     user = user_collection.find_one({"email": email})
@@ -48,21 +45,11 @@ def google_auth_user(data: dict):
 @router.get("/admin")
 def google_auth_admin(data: dict):
 
-    token = data.get("token")
-    if not token:
-        raise HTTPException(status_code=400, detail="Token missing")
 
-    idinfo = verify_google_token(token)
-    email = idinfo["email"].lower()
+    idinfo = verify_google_token(data)
+    email = idinfo["email"]
 
-    admin = admin_collection.find_one({"email": email})
-    if admin:
-        admin_id = str(admin["_id"])
-    else:
-        raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Admin does not exist"
-        )
+    admin_id, email = verify_admin_by_email(email, "Y")
 
 
     today=date.today()
@@ -85,21 +72,10 @@ def google_auth_admin(data: dict):
 @router.get("/superadmin")
 def google_auth_superadmin(data: dict):
 
-    token = data.get("token")
-    if not token:
-        raise HTTPException(status_code=400, detail="Token missing")
+    idinfo = verify_google_token(data)
+    email = idinfo["email"]
 
-    idinfo = verify_google_token(token)
-    email = idinfo["email"].lower()
-
-    superadmin = superadmin_collection.find_one({"email": email})
-    if superadmin:
-        superadmin_id = str(superadmin["_id"])
-    else:
-        raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Admin does not exist"
-        )
+    superadmin_id, email = verify_superadmin_by_email(email, "Y")
 
 
     today=date.today()

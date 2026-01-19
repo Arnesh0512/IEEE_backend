@@ -3,8 +3,9 @@ from datetime import datetime
 from database import user_collection, event_collection
 from schemas.user import UserCreate
 from utils.time import IST
-from utils.validate import verify_access_token
-from utils.verify import verify_user_payload, verify_event
+from verify.token import verify_access_token
+from verify.user import verify_user_payload
+from verify.event import verify_event, verify_eventRegistry
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 security = HTTPBearer()
@@ -54,27 +55,58 @@ def register_event(
 
     timestamp = datetime.now(IST).isoformat()
 
-    if not user_collection.find_one({
-        "_id": user_id,
-        "registered_event.event_id": event_id
-    }):
-        
-        user_collection.update_one(
-            {"_id": user_id},
-            {"$push": {"registered_event": {"event_id": event_id,"registered_on": timestamp, "team":None}}}
-        )
 
-
-    if not event_collection.find_one({
-        "_id": event_id,
-        "registered_user.user_id": user_id
-    }):
+    verify_eventRegistry(event_id, user_id, "N")
         
-        event_collection.update_one(
-            {"_id": event_id},
-            {"$push": {"registered_user": {"user_id": user_id,"registered_on": timestamp, "team":None}}}
-        )
+    user_collection.update_one(
+        {"_id": user_id},
+        {"$push": {"registered_event": {"event_id": event_id,"registered_on": timestamp}}}
+    )
+        
+    event_collection.update_one(
+        {"_id": event_id},
+        {"$push": {"registered_user": user_id}}
+    )
 
 
     return {"message": "Event registered successfully"}
 
+
+
+@router.get("/profile")
+def get_user_details(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    user_id ,email = verify_user_payload(payload)
+
+    user = user_collection.find_one(
+        {"_id": user_id, "email": email},
+        {
+            "_id": 0,
+            "registered_event":0
+        }
+    )
+
+    return {
+        "success": True,
+        "data": user
+    }
+
+
+@router.get("/registered")
+def get_registered_events_teams(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    user_id ,email = verify_user_payload(payload)
+
+    user = user_collection.find_one(
+        {"_id": user_id, "email": email},
+        {
+            "_id": 0,
+            "registered_event":1
+        }
+    )
+
+    event = event_collection.find_one(
+        
+    )

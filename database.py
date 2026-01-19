@@ -21,7 +21,7 @@ event_collection = db["event"]
 team_collection = db["team"]
 fs = GridFS(db)
 
-
+admin_collection_name = "admin"+"_"+db_name
 cred_db = client["credentials"]
-admin_collection = cred_db["admin"]
+admin_collection = cred_db[admin_collection_name]
 superadmin_collection = cred_db["superadmin"]

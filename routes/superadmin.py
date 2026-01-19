@@ -3,8 +3,9 @@ from datetime import datetime
 from database import admin_collection
 from schemas.admin import AdminCreate
 from utils.time import IST
-from utils.validate import verify_access_token
-from utils.verify import verify_superadmin_payload, verify_admin
+from verify.token import verify_access_token
+from verify.superadmin import verify_superadmin_payload
+from verify.admin import verify_admin
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 security = HTTPBearer()
@@ -83,7 +84,7 @@ def delete_admin(
 
     verify_superadmin_payload(payload)
 
-    admin_obj_id, admin_email = verify_admin(admin_id, email)
+    admin_obj_id, admin_email = verify_admin(admin_id, email, "Y")
 
     result = admin_collection.delete_one({
         "_id": admin_obj_id,

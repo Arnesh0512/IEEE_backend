@@ -14,6 +14,7 @@ class EventCreate(BaseModel):
     duration: Optional[str] = None
 
     event_type: Optional[Literal["Free", "Paid"]] = None
+    event_team_allowed: Optional[bool] = None
 
     venue: Optional[str] = None
     person_incharge: Optional[str] = None
@@ -29,6 +30,7 @@ class EventCreate(BaseModel):
         event_time: Optional[time] = Form(None),
         duration: Optional[str] = Form(None),
         event_type: Optional[Literal["free", "paid"]] = Form(None),
+        event_team_allowed: Optional[bool] = Form(None),
         venue: Optional[str] = Form(None),
         person_incharge: Optional[str] = Form(None),
         event_status: Optional[Literal["Ongoing", "Completed"]] = Form(None),
@@ -40,6 +42,7 @@ class EventCreate(BaseModel):
             event_time=event_time,
             duration=duration,
             event_type=event_type,
+            event_team_allowed=event_team_allowed,
             venue=venue,
             person_incharge=person_incharge,
             event_status=event_status,

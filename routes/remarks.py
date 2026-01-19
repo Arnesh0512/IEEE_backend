@@ -1,0 +1,175 @@
+from fastapi import APIRouter, Depends
+from database import event_collection, user_collection, team_collection
+from verify.token import verify_access_token
+from verify.sudo import verify_sudo_payload
+from verify.event import verify_event, verify_eventRegistry
+from verify.user import verify_user
+from verify.team import verify_team_by_id
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+security = HTTPBearer()
+
+router = APIRouter(prefix="/root/remarks", tags=["Remarks"])
+
+@router.patch("/user")
+def create_user_remark(
+    event_id: str,
+    user_id: str,
+    user_email: str,
+    remark: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    verify_sudo_payload(payload)
+
+    user_id,user_email=verify_user(user_id, user_email,"Y")
+    event_id=verify_event(event_id)
+    verify_eventRegistry(event_id,user_id)
+
+    user_collection.update_one(
+    {
+        "_id": user_id,
+        "registered_event.event_id": event_id
+    },
+    {
+        "$set": {
+            "registered_event.$.remark": remark
+        }
+    }
+    )
+    
+    return {"message": "Remark added"}
+
+
+@router.delete("/user")
+def delete_user_remark(
+    event_id: str,
+    user_id: str,
+    user_email: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    verify_sudo_payload(payload)
+
+    user_id,user_email=verify_user(user_id, user_email,"Y")
+    event_id=verify_event(event_id)
+    verify_eventRegistry(event_id,user_id)
+
+    user_collection.update_one(
+    {
+        "_id": user_id,
+        "registered_event.event_id": event_id
+    },
+    {
+        "$unset": {
+            "registered_event.$.remark": ""
+        }
+    }
+    )
+    
+    return {"message": "Remark deleted"}
+
+
+@router.patch("/event")
+def add_event_remark(
+    event_id: str,
+    remark: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    verify_sudo_payload(payload)
+
+    event_id=verify_event(event_id)
+
+    event_collection.update_one(
+    {
+        "_id": event_id
+    },
+    {
+        "$set": {
+            "remark": remark
+        }
+    }
+    )
+    
+    return {"message": "Remark added"}
+
+
+@router.delete("/event")
+def delete_event_remark(
+    event_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    verify_sudo_payload(payload)
+
+    event_id=verify_event(event_id)
+
+    event_collection.update_one(
+    {
+        "_id": event_id
+    },
+    {
+        "$unset": {
+            "remark": ""
+        }
+    }
+    )
+    
+    return {"message": "Remark deleted"}
+
+
+@router.patch("/team")
+def add_team_remark(
+    team_id: str,
+    remark: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    verify_sudo_payload(payload)
+
+    team_id=verify_team_by_id(team_id)
+
+    team_collection.update_one(
+    {
+        "_id": team_id
+    },
+    {
+        "$set": {
+            "remark": remark
+        }
+    }
+    )
+    
+    return {"message": "Remark added"}
+
+
+@router.delete("/team")
+def delete_team_remark(
+    team_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    verify_sudo_payload(payload)
+
+    team_id=verify_team_by_id(team_id)
+
+    team_collection.update_one(
+    {
+        "_id": team_id
+    },
+    {
+        "$unset": {
+            "remark": ""
+        }
+    }
+    )
+    
+    return {"message": "Remark deleted"}
+
