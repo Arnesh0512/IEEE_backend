@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime
-from database import user_collection, event_collection, team_collection
+from database import client, user_collection, event_collection, team_collection
 from schemas.user import UserCreate
 from utils.time import IST
 from verify.token import verify_access_token
@@ -8,6 +8,7 @@ from verify.user import verify_user_payload
 from verify.event import verify_event, verify_eventRegistry
 from verify.team import verify_team_by_id, verify_in_team
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from utils.pattern import DB_PATTERN
 
 security = HTTPBearer()
 
@@ -260,4 +261,43 @@ def get_this_session_events(
         "data": events
     }
 
+
+@router.get("/archive")
+def get_all_archieved_events(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    user_id, email = verify_user_payload(payload)
+
+    db_names = client.list_database_names()
+
+    archive_data={}
+    for db_name in db_names:
+        if not DB_PATTERN.match(db_name):
+            continue
+
+        db = client[db_name]
+        event_collection = db.event_collection
+
+        events_cursor = event_collection.find(
+            {},
+            {
+                "registered_user": 0,
+                "registered_team": 0,
+                "remark": 0
+            }
+        )
+
+        events = []
+        for event in events_cursor:
+            event["_id"] = str(event["_id"])
+            events.append(event)
+
+        archive_data[db_name] = events
+
+    return {
+        "success": True,
+        "data": archive_data
+    }
 

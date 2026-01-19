@@ -1,12 +1,13 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from datetime import datetime
-from database import admin_collection
+from database import admin_collection, client
 from schemas.admin import AdminCreate
 from utils.time import IST
 from verify.token import verify_access_token
 from verify.superadmin import verify_superadmin_payload
 from verify.admin import verify_admin
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from utils.pattern import verify_session_db, DB_PATTERN
 
 security = HTTPBearer()
 
@@ -49,22 +50,66 @@ def create_admin(
 
 
 
-@router.get("/admins")
+@router.get("/{db_name}/admins")
 def get_all_admins(
+    db_name: str,
     credentials: HTTPAuthorizationCredentials = Depends(security)
-    ):
-
+):
     token = credentials.credentials
     payload = verify_access_token(token)
     verify_superadmin_payload(payload)
+
+    db_name = verify_session_db(db_name)
+    db = client[db_name]
+    admin_collection = db["admins"]
 
     admins = list(admin_collection.find())
 
     for admin in admins:
         admin["_id"] = str(admin["_id"])
-        admin["created_by"]["super_id"] = str(admin["created_by"]["super_id"])
+        if "created_by" in admin and "super_id" in admin["created_by"]:
+            admin["created_by"]["super_id"] = str(admin["created_by"]["super_id"])
 
-    return admins
+    return {
+        "success": True,
+        "data": admins
+    }
+
+
+
+
+@router.get("/all/admins")
+def get_all_admins_all_sessions(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    verify_superadmin_payload(payload)
+
+    result = {}
+
+    db_names = client.list_database_names()
+
+    for db_name in db_names:
+        if not DB_PATTERN.match(db_name):
+            continue
+
+        db = client[db_name]
+        admin_collection = db["admins"]
+
+        admins = list(admin_collection.find())
+
+        for admin in admins:
+            admin["_id"] = str(admin["_id"])
+            if "created_by" in admin and "super_id" in admin["created_by"]:
+                admin["created_by"]["super_id"] = str(admin["created_by"]["super_id"])
+
+        result[db_name] = admins
+
+    return {
+        "success": True,
+        "data": result
+    }
 
 
 
