@@ -128,3 +128,17 @@ def verify_team_by_id(team_id: str) -> ObjectId:
         )
     
     return team_oid
+
+
+def verify_in_team(team_id: str, user_id:str):
+    team=team_collection.find_one({"_id": team_id})
+    leader=team["leader_id"] == user_id
+    member=user_id in team["members"]
+
+    if not leader or not member:
+        raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User is not in team"
+            )
+
+
