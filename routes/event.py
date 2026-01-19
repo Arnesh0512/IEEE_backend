@@ -60,7 +60,7 @@ def update_event(
         file_id = fs.put(image.file)
         update_data["event_thumbnail_id"] = str(file_id)
 
-    event_id = verify_event(event_id)
+    event, event_id = verify_event(event_id)
 
     if update_data["event_team_allowed"] == True:
         update_data["registered_team"] = []
@@ -94,8 +94,7 @@ def delete_event(event_id: str,
     payload = verify_access_token(token)
     verify_sudo_payload(payload)
 
-    event_id = verify_event(event_id)
-    event = event_collection.find_one({"_id": event_id})
+    event, event_id = verify_event(event_id)
     
 
     if "event_thumbnail_id" in event:

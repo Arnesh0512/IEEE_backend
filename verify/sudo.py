@@ -4,7 +4,7 @@ from typing import Tuple
 from .admin import verify_admin_payload, verify_admin, verify_admin_by_email, verify_admin_by_id
 from .superadmin import verify_superadmin_payload, verify_superadmin, verify_superadmin_by_email, verify_superadmin_by_id
 
-def verify_sudo_payload(payload: dict) -> Tuple[ObjectId, str, str]:
+def verify_sudo_payload(payload: dict) -> Tuple[dict|None, ObjectId, str, str]:
 
     role = payload.get("role")
 
@@ -15,10 +15,10 @@ def verify_sudo_payload(payload: dict) -> Tuple[ObjectId, str, str]:
         )
     
     if role == "admin":
-        sudo_id, sudo_email =  verify_admin_payload(payload)
+        sudo, sudo_id, sudo_email =  verify_admin_payload(payload)
     
     elif role == "superadmin":
-        sudo_id, sudo_email =  verify_superadmin_payload(payload)
+        sudo, sudo_id, sudo_email =  verify_superadmin_payload(payload)
 
 
     else:
@@ -27,13 +27,13 @@ def verify_sudo_payload(payload: dict) -> Tuple[ObjectId, str, str]:
             detail="Unauthorized"
         )
     
-    return (sudo_id, sudo_email,role)
+    return (sudo, sudo_id, sudo_email,role)
     
 
 
 
 
-def verify_sudo(sudo_id: str, sudo_email: str, role:str, type:str) -> Tuple[ObjectId, str]:
+def verify_sudo(sudo_id: str, sudo_email: str, role:str, type:str) -> Tuple[dict|None, ObjectId, str]:
 
     if role == "admin":
         return verify_admin(sudo_id, sudo_email, type)
@@ -50,7 +50,7 @@ def verify_sudo(sudo_id: str, sudo_email: str, role:str, type:str) -> Tuple[Obje
     
     
 
-def verify_sudo_by_email(sudo_email: str, role:str, type: str) -> Tuple[ObjectId|None, str]:
+def verify_sudo_by_email(sudo_email: str, role:str, type: str) -> Tuple[dict|None, ObjectId|None, str]:
 
     if role == "admin":
         return verify_admin_by_email(sudo_email, type)
@@ -68,7 +68,7 @@ def verify_sudo_by_email(sudo_email: str, role:str, type: str) -> Tuple[ObjectId
 
 
 
-def verify_sudo_by_id(sudo_id: str, role:str, type: str) -> Tuple[ObjectId, str|None]:
+def verify_sudo_by_id(sudo_id: str, role:str, type: str) -> Tuple[dict|None, ObjectId, str|None]:
 
     if role == "admin":
         return verify_admin_by_id(sudo_id, type)

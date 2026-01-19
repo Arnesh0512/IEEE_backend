@@ -23,9 +23,9 @@ def create_user_remark(
     payload = verify_access_token(token)
     verify_sudo_payload(payload)
 
-    user_id,user_email=verify_user(user_id, user_email,"Y")
-    event_id=verify_event(event_id)
-    verify_eventRegistry(event_id,user_id)
+    user, user_id,user_email=verify_user(user_id, user_email,"Y")
+    event, event_id=verify_event(event_id)
+    verify_eventRegistry(event_id, user_id, "Y", user, event)
 
     user_collection.update_one(
     {
@@ -53,9 +53,9 @@ def delete_user_remark(
     payload = verify_access_token(token)
     verify_sudo_payload(payload)
 
-    user_id,user_email=verify_user(user_id, user_email,"Y")
-    event_id=verify_event(event_id)
-    verify_eventRegistry(event_id,user_id)
+    user, user_id,user_email=verify_user(user_id, user_email,"Y")
+    event, event_id=verify_event(event_id)
+    verify_eventRegistry(event_id, user_id, "Y", user, event)
 
     user_collection.update_one(
     {
@@ -82,7 +82,7 @@ def add_event_remark(
     payload = verify_access_token(token)
     verify_sudo_payload(payload)
 
-    event_id=verify_event(event_id)
+    event, event_id=verify_event(event_id)
 
     event_collection.update_one(
     {
@@ -107,7 +107,7 @@ def delete_event_remark(
     payload = verify_access_token(token)
     verify_sudo_payload(payload)
 
-    event_id=verify_event(event_id)
+    event, event_id=verify_event(event_id)
 
     event_collection.update_one(
     {
@@ -133,7 +133,7 @@ def add_team_remark(
     payload = verify_access_token(token)
     verify_sudo_payload(payload)
 
-    team_id=verify_team_by_id(team_id)
+    team, team_id=verify_team_by_id(team_id)
 
     team_collection.update_one(
     {
@@ -158,7 +158,7 @@ def delete_team_remark(
     payload = verify_access_token(token)
     verify_sudo_payload(payload)
 
-    team_id=verify_team_by_id(team_id)
+    team, team_id=verify_team_by_id(team_id)
 
     team_collection.update_one(
     {

@@ -25,7 +25,7 @@ def signup_user(
 
     token = credentials.credentials
     payload = verify_access_token(token)
-    user_id ,email = verify_user_payload(payload)
+    user,user_id ,email = verify_user_payload(payload)
     
     
     update_data = user.model_dump(mode="json")
@@ -52,13 +52,13 @@ def register_event(
     ):
     token = credentials.credentials
     payload = verify_access_token(token)
-    user_id , email = verify_user_payload(payload)
-    event_id = verify_event(event_id)
+    user,user_id , email = verify_user_payload(payload)
+    event,event_id = verify_event(event_id)
 
     timestamp = datetime.now(IST).isoformat()
 
 
-    verify_eventRegistry(event_id, user_id, "N")
+    verify_eventRegistry(event_id, user_id, "Y", user, event)
         
     user_collection.update_one(
         {"_id": user_id},
@@ -79,16 +79,11 @@ def register_event(
 def get_user_details(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
     payload = verify_access_token(token)
-    user_id ,email = verify_user_payload(payload)
+    user,user_id ,email = verify_user_payload(payload)
 
-    user = user_collection.find_one(
-        {"_id": user_id, "email": email},
-        {
-            "_id": 0,
-            "registered_event":0,
-            "remark":0
-        }
-    )
+    del user["_id"]
+    del user["registered_event"]
+    del user["remark"]
 
     return {
         "success": True,
@@ -100,15 +95,7 @@ def get_user_details(credentials: HTTPAuthorizationCredentials = Depends(securit
 def get_registered_events_teams(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
     payload = verify_access_token(token)
-    user_id ,email = verify_user_payload(payload)
-
-    user = user_collection.find_one(
-        {"_id": user_id, "email": email},
-        {
-            "_id": 0,
-            "registered_event":1
-        }
-    )
+    user,user_id ,email = verify_user_payload(payload)
 
     event = event_collection.find(
         {},
@@ -158,19 +145,14 @@ def get_registered_event(
     credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
     payload = verify_access_token(token)
-    user_id ,email = verify_user_payload(payload)
-    event_id = verify_event(event_id)
-    verify_eventRegistry(event_id,user_id)
-    
-    event = event_collection.find_one(
-        {"_id":event_id},
-        {
-            "_id":0,
-            "registered_user":0,
-            "registered_team":0,
-            "remark":0
-        }
-    )
+    user,user_id ,email = verify_user_payload(payload)
+    event,event_id = verify_event(event_id)
+    verify_eventRegistry(event_id, user_id, "Y", user, event)
+
+    del event["_id"]
+    del event["registered_user"]
+    del event["registered_team"]
+    del event["remark"]
 
     return {
         "success": True,
@@ -186,15 +168,10 @@ def get_team(
 ):
     token = credentials.credentials
     payload = verify_access_token(token)
-    user_id, email = verify_user_payload(payload)
-    team_id = verify_team_by_id(team_id)
-    verify_in_team(team_id, user_id)
+    user,user_id, email = verify_user_payload(payload)
+    team,team_id = verify_team_by_id(team_id)
+    verify_in_team(team, user_id)
 
-
-    team = team_collection.find_one(
-        {"_id": team_id},
-        {"remark": 0}
-    )
 
     event = event_collection.find_one(
         {"_id": team["event_id"]},
@@ -240,7 +217,7 @@ def get_this_session_events(
 ):
     token = credentials.credentials
     payload = verify_access_token(token)
-    user_id, email = verify_user_payload(payload)
+    user,user_id, email = verify_user_payload(payload)
 
     events_cursor = event_collection.find(
         {},
@@ -268,7 +245,7 @@ def get_all_archieved_events(
 ):
     token = credentials.credentials
     payload = verify_access_token(token)
-    user_id, email = verify_user_payload(payload)
+    user,user_id, email = verify_user_payload(payload)
 
     db_names = client.list_database_names()
 

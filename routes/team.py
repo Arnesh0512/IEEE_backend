@@ -44,13 +44,13 @@ def signup_team(
 
     token = credentials.credentials
     payload = verify_access_token(token)
-    user_id ,user_email = verify_user_payload(payload)
-    event_id = verify_event(event_id)
-    verify_is_team_allowed(event_id)
-    verify_eventRegistry(event_id, user_id)
+    user, user_id ,user_email = verify_user_payload(payload)
+    event, event_id = verify_event(event_id)
+    verify_is_team_allowed(event)
+    verify_eventRegistry(event_id, user_id, "Y", user, event)
 
-    verify_user_not_in_team(user_id, event_id)
-    team_name = verify_teamName(team_name, event_id, "N")
+    verify_user_not_in_team(user, event_id)
+    team_, team_name = verify_teamName(team_name, event_id, "N")
 
 
     team_data={
@@ -84,14 +84,14 @@ def register_event(
     ):
     token = credentials.credentials
     payload = verify_access_token(token)
-    user_id , email = verify_user_payload(payload)
-    event_id = verify_event(event_id)
-    verify_is_team_allowed(event_id)
-    verify_eventRegistry(event_id, user_id)
-    verify_user_not_in_team(user_id, event_id)
+    user, user_id , email = verify_user_payload(payload)
+    event, event_id = verify_event(event_id)
+    verify_is_team_allowed(event)
+    verify_eventRegistry(event_id, user_id, "Y", user, event)
+    verify_user_not_in_team(user, event_id)
 
-    team_name = verify_teamName(team_name, event_id, "Y")
-    team = verify_teamMember(team_name, event_id, user_id, "N")
+    team,team_name = verify_teamName(team_name, event_id, "Y")
+    verify_teamMember(team, user_id, "N")
     team_id = team["_id"]
 
     team_collection.update_one(
@@ -115,13 +115,13 @@ def delete_team(
 ):
     token = credentials.credentials
     payload = verify_access_token(token)
-    leader_id, email = verify_user_payload(payload)
-    event_id = verify_event(event_id)
-    verify_is_team_allowed(event_id)
-    verify_eventRegistry(event_id, leader_id)
+    leader, leader_id, email = verify_user_payload(payload)
+    event, event_id = verify_event(event_id)
+    verify_is_team_allowed(event)
+    verify_eventRegistry(event_id, leader_id, "Y", leader, event)
 
-    team_name = verify_teamName(team_name, event_id, "Y")
-    team = verify_teamLeader(team_name, event_id, leader_id, "Y")
+    team,team_name = verify_teamName(team_name, event_id, "Y")
+    verify_teamLeader(team, leader_id, "Y")
     team_id = team["_id"]
 
 
@@ -148,14 +148,14 @@ def leave_team(
 ):
     token = credentials.credentials
     payload = verify_access_token(token)
-    user_id, _ = verify_user_payload(payload)
-    event_id = verify_event(event_id)
-    verify_is_team_allowed(event_id)
-    verify_eventRegistry(event_id, user_id)
+    user, user_id, _ = verify_user_payload(payload)
+    event, event_id = verify_event(event_id)
+    verify_is_team_allowed(event)
+    verify_eventRegistry(event_id, user_id, "Y", user, event)
 
 
-    team_name = verify_teamName(team_name, event_id, "Y")
-    team = verify_teamMember(team_name, event_id, user_id, "Y")
+    team, team_name = verify_teamName(team_name, event_id, "Y")
+    verify_teamMember(team, user_id, "Y")
     team_id = team["_id"]
 
 

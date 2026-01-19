@@ -5,7 +5,7 @@ from schemas.admin import AdminCreate
 from utils.time import IST
 from verify.token import verify_access_token
 from verify.superadmin import verify_superadmin_payload
-from verify.admin import verify_admin
+from verify.admin import verify_admin, verify_admin_by_email
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from utils.pattern import verify_session_db, DB_PATTERN
 
@@ -22,7 +22,7 @@ def create_admin(
     token = credentials.credentials
     payload = verify_access_token(token)
 
-    super_id,super_email = verify_superadmin_payload(payload)    
+    superadmin, super_id,super_email = verify_superadmin_payload(payload)    
     
 
     admin_data = admin.model_dump(mode="json")
@@ -31,8 +31,7 @@ def create_admin(
     admin_data["email"] = admin.email.lower()
 
 
-    if admin_collection.find_one({"email": admin_data["email"]}):
-        raise HTTPException(status_code=400, detail="Admin already exists")
+    verify_admin_by_email(admin_data["email"], "N")
 
     admin_collection.insert_one(admin_data)
 
@@ -129,7 +128,7 @@ def delete_admin(
 
     verify_superadmin_payload(payload)
 
-    admin_obj_id, admin_email = verify_admin(admin_id, email, "Y")
+    admin, admin_obj_id, admin_email = verify_admin(admin_id, email, "Y")
 
     result = admin_collection.delete_one({
         "_id": admin_obj_id,

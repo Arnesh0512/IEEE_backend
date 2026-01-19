@@ -4,7 +4,7 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from typing import Tuple
 
-def verify_superadmin_payload(payload: dict) -> Tuple[ObjectId, str]:
+def verify_superadmin_payload(payload: dict) -> Tuple[dict|None, ObjectId, str]:
 
     superadmin_id = payload.get("superadmin_id")
     email = payload.get("email")
@@ -27,7 +27,7 @@ def verify_superadmin_payload(payload: dict) -> Tuple[ObjectId, str]:
 
 
 
-def verify_superadmin(superadmin_id: str, email: str, type:str) -> Tuple[ObjectId, str]:
+def verify_superadmin(superadmin_id: str, email: str, type:str) -> Tuple[dict|None, ObjectId, str]:
 
     email = email.lower()
 
@@ -39,41 +39,41 @@ def verify_superadmin(superadmin_id: str, email: str, type:str) -> Tuple[ObjectI
             detail="Invalid superadmin id"
         )
 
-    exists = superadmin_collection.find_one({
+    superadmin = superadmin_collection.find_one({
         "_id": superadmin_obj_id,
         "email": email
     })
 
     if type == "N":
-        if exists:
+        if superadmin:
             raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Superadmin Already exists"
         )
 
     if type == "Y":
-        if not exists:
+        if not superadmin:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Superadmin not found"
             )
         
 
-    return (superadmin_obj_id,email)
+    return (superadmin,superadmin_obj_id,email)
 
 
 
 
 
-def verify_superadmin_by_email(email: str, type: str) -> Tuple[ObjectId|None, str]:
+def verify_superadmin_by_email(email: str, type: str) -> Tuple[dict|None, ObjectId|None, str]:
     email = email.lower()
 
-    exists = superadmin_collection.find_one({
+    superadmin = superadmin_collection.find_one({
         "email": email
     })
 
     if type == "N":
-        if exists:
+        if superadmin:
             raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Superadmin Already exists"
@@ -82,18 +82,18 @@ def verify_superadmin_by_email(email: str, type: str) -> Tuple[ObjectId|None, st
 
 
     if type == "Y":
-        if not exists:
+        if not superadmin:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Superadmin not found"
             )
-        superadmin_obj_id = exists["_id"]
+        superadmin_obj_id = superadmin["_id"]
 
-    return (superadmin_obj_id,email)
+    return (superadmin,superadmin_obj_id,email)
 
 
 
-def verify_superadmin_by_id(superadmin_id: str, type: str) -> Tuple[ObjectId, str|None]:
+def verify_superadmin_by_id(superadmin_id: str, type: str) -> Tuple[dict|None, ObjectId, str|None]:
 
     try:
         superadmin_obj_id = ObjectId(superadmin_id)
@@ -103,12 +103,12 @@ def verify_superadmin_by_id(superadmin_id: str, type: str) -> Tuple[ObjectId, st
             detail="Invalid superadmin id"
         )
 
-    exists = superadmin_collection.find_one({
+    superadmin = superadmin_collection.find_one({
         "_id": superadmin_obj_id,
     })
 
     if type == "N":
-        if exists:
+        if superadmin:
             raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Superadmin Already exists"
@@ -116,11 +116,11 @@ def verify_superadmin_by_id(superadmin_id: str, type: str) -> Tuple[ObjectId, st
         email = None
 
     if type == "Y":
-        if not exists:
+        if not superadmin:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Superadmin not found"
             )
-        email=exists["email"]
+        email=superadmin["email"]
         
-    return (superadmin_obj_id,email)
+    return (superadmin,superadmin_obj_id,email)

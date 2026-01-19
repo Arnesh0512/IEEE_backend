@@ -49,7 +49,7 @@ def google_auth_admin(data: dict):
     idinfo = verify_google_token(data)
     email = idinfo["email"]
 
-    admin_id, email = verify_admin_by_email(email, "Y")
+    admin, admin_id, email = verify_admin_by_email(email, "Y")
 
 
     today=date.today()
@@ -75,7 +75,7 @@ def google_auth_superadmin(data: dict):
     idinfo = verify_google_token(data)
     email = idinfo["email"]
 
-    superadmin_id, email = verify_superadmin_by_email(email, "Y")
+    superadmin, superadmin_id, email = verify_superadmin_by_email(email, "Y")
 
 
     today=date.today()

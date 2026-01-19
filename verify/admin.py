@@ -4,7 +4,7 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from typing import Tuple
 
-def verify_admin_payload(payload: dict) -> Tuple[ObjectId, str]:
+def verify_admin_payload(payload: dict) -> Tuple[dict|None, ObjectId, str]:
 
     admin_id = payload.get("admin_id")
     email = payload.get("email")
@@ -27,7 +27,7 @@ def verify_admin_payload(payload: dict) -> Tuple[ObjectId, str]:
 
 
 
-def verify_admin(admin_id: str, email: str, type:str) -> Tuple[ObjectId, str]:
+def verify_admin(admin_id: str, email: str, type:str) -> Tuple[dict|None, ObjectId, str]:
 
     email = email.lower()
 
@@ -39,41 +39,41 @@ def verify_admin(admin_id: str, email: str, type:str) -> Tuple[ObjectId, str]:
             detail="Invalid admin id"
         )
 
-    exists = admin_collection.find_one({
+    admin = admin_collection.find_one({
         "_id": admin_obj_id,
         "email": email
     })
 
     if type == "N":
-        if exists:
+        if admin:
             raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Admin Already exists"
         )
 
     if type == "Y":
-        if not exists:
+        if not admin:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Admin not found"
             )
         
 
-    return (admin_obj_id,email)
+    return (admin,admin_obj_id,email)
 
 
 
 
 
-def verify_admin_by_email(email: str, type: str) -> Tuple[ObjectId|None, str]:
+def verify_admin_by_email(email: str, type: str) -> Tuple[dict|None, ObjectId|None, str]:
     email = email.lower()
 
-    exists = admin_collection.find_one({
+    admin = admin_collection.find_one({
         "email": email
     })
 
     if type == "N":
-        if exists:
+        if admin:
             raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Admin Already exists"
@@ -82,18 +82,18 @@ def verify_admin_by_email(email: str, type: str) -> Tuple[ObjectId|None, str]:
 
 
     if type == "Y":
-        if not exists:
+        if not admin:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Admin not found"
             )
-        admin_obj_id = exists["_id"]
+        admin_obj_id = admin["_id"]
 
-    return (admin_obj_id,email)
+    return (admin,admin_obj_id,email)
 
 
 
-def verify_admin_by_id(admin_id: str, type: str) -> Tuple[ObjectId, str|None]:
+def verify_admin_by_id(admin_id: str, type: str) -> Tuple[dict|None, ObjectId, str|None]:
 
     try:
         admin_obj_id = ObjectId(admin_id)
@@ -103,12 +103,12 @@ def verify_admin_by_id(admin_id: str, type: str) -> Tuple[ObjectId, str|None]:
             detail="Invalid admin id"
         )
 
-    exists = admin_collection.find_one({
+    admin = admin_collection.find_one({
         "_id": admin_obj_id,
     })
 
     if type == "N":
-        if exists:
+        if admin:
             raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Admin Already exists"
@@ -116,11 +116,11 @@ def verify_admin_by_id(admin_id: str, type: str) -> Tuple[ObjectId, str|None]:
         email = None
 
     if type == "Y":
-        if not exists:
+        if not admin:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Admin not found"
             )
-        email=exists["email"]
+        email=admin["email"]
         
-    return (admin_obj_id,email)
+    return (admin,admin_obj_id,email)

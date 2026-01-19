@@ -4,7 +4,7 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from typing import Tuple
 
-def verify_user_payload(payload: dict) -> Tuple[ObjectId, str]:
+def verify_user_payload(payload: dict) -> Tuple[dict|None, ObjectId, str]:
 
     user_id = payload.get("user_id")
     email = payload.get("email")
@@ -27,7 +27,7 @@ def verify_user_payload(payload: dict) -> Tuple[ObjectId, str]:
 
 
 
-def verify_user(user_id: str, email: str, type:str) -> Tuple[ObjectId, str]:
+def verify_user(user_id: str, email: str, type:str) -> Tuple[dict|None, ObjectId, str]:
 
     email = email.lower()
 
@@ -39,41 +39,41 @@ def verify_user(user_id: str, email: str, type:str) -> Tuple[ObjectId, str]:
             detail="Invalid user id"
         )
 
-    exists = user_collection.find_one({
+    user = user_collection.find_one({
         "_id": user_obj_id,
         "email": email
     })
 
     if type == "N":
-        if exists:
+        if user:
             raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="User Already exists"
         )
 
     if type == "Y":
-        if not exists:
+        if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
             )
         
 
-    return (user_obj_id,email)
+    return (user,user_obj_id,email)
 
 
 
 
 
-def verify_user_by_email(email: str, type: str) -> Tuple[ObjectId|None, str]:
+def verify_user_by_email(email: str, type: str) -> Tuple[dict|None, ObjectId|None, str]:
     email = email.lower()
 
-    exists = user_collection.find_one({
+    user = user_collection.find_one({
         "email": email
     })
 
     if type == "N":
-        if exists:
+        if user:
             raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="User Already exists"
@@ -82,18 +82,18 @@ def verify_user_by_email(email: str, type: str) -> Tuple[ObjectId|None, str]:
 
 
     if type == "Y":
-        if not exists:
+        if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
             )
-        user_obj_id = exists["_id"]
+        user_obj_id = user["_id"]
 
-    return (user_obj_id,email)
+    return (user,user_obj_id,email)
 
 
 
-def verify_user_by_id(user_id: str, type: str) -> Tuple[ObjectId, str|None]:
+def verify_user_by_id(user_id: str, type: str) -> Tuple[dict|None, ObjectId, str|None]:
 
     try:
         user_obj_id = ObjectId(user_id)
@@ -103,12 +103,12 @@ def verify_user_by_id(user_id: str, type: str) -> Tuple[ObjectId, str|None]:
             detail="Invalid user id"
         )
 
-    exists = user_collection.find_one({
+    user = user_collection.find_one({
         "_id": user_obj_id,
     })
 
     if type == "N":
-        if exists:
+        if user:
             raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="User Already exists"
@@ -116,11 +116,11 @@ def verify_user_by_id(user_id: str, type: str) -> Tuple[ObjectId, str|None]:
         email = None
 
     if type == "Y":
-        if not exists:
+        if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
             )
-        email=exists["email"]
+        email=user["email"]
         
-    return (user_obj_id,email)
+    return (user,user_obj_id,email)
