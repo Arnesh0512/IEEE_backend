@@ -43,3 +43,5 @@ def verify_admin_collection(collection_name: str) -> str:
         )
 
     return collection_name
+
+

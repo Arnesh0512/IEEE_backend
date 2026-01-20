@@ -54,7 +54,7 @@ def google_auth_admin(data: dict):
 
     today=date.today()
     payload = {
-        "admin_id":admin_id,
+        "admin_id":str(admin_id),
         "email": email,
         "role": "admin",
         "exp": datetime(today.year + (1 if today.month > 6 else 0),6,30, 18,30)
@@ -80,7 +80,7 @@ def google_auth_superadmin(data: dict):
 
     today=date.today()
     payload = {
-        "superadmin_id":superadmin_id,
+        "superadmin_id":str(superadmin_id),
         "email": email,
         "role": "superadmin",
         "exp": datetime(today.year + (1 if today.month > 6 else 0),6,30, 18,30)

@@ -91,7 +91,8 @@ def get_all_admins_all_sessions(
     coll_names = db.list_collection_names()
 
     for coll_name in coll_names:
-        coll_name = verify_admin_collection(coll_name[5:])
+        if not DB_PATTERN.match(coll_name[5:]):
+            continue
 
         admin_collection = db["coll_name"]
 
