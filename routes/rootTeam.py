@@ -10,6 +10,76 @@ security = HTTPBearer()
 router = APIRouter(prefix="/root/getTeam", tags=["GetTeam"])
 
 
+
+@router.get("/all-teams")
+def get_all_teams_all_sessions(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    verify_sudo_payload(payload)
+
+    result = {}
+
+    db_names = client.list_database_names()
+
+    for db_name in db_names:
+        if not DB_PATTERN.match(db_name):
+            continue
+
+        try:
+            session_db_name = verify_session_db(db_name)
+        except Exception:
+            continue
+
+        db = client[session_db_name]
+        team_collection = db["team"]
+        user_collection = db["user"]
+        event_collection = db["event"]
+
+        teams = list(team_collection.find({}))
+        if not teams:
+            result[session_db_name] = {"count": 0, "data": []}
+            continue
+
+        event_ids = list({team["event_id"] for team in teams})
+        leader_ids = list({team["leader_id"] for team in teams})
+
+        events = {e["_id"]: e.get("event_name") for e in event_collection.find(
+            {"_id": {"$in": event_ids}}, {"_id": 1, "event_name": 1})}
+        leaders = {u["_id"]: {"name": u.get("name"), "email": u.get("email")} for u in user_collection.find(
+            {"_id": {"$in": leader_ids}}, {"_id": 1, "name": 1, "email": 1})}
+
+        session_result = []
+        for team in teams:
+            tid = team["_id"]
+            eid = team["event_id"]
+            lid = team["leader_id"]
+            members = team.get("members", [])
+            remark = team.get("remark")
+
+            session_result.append({
+                "team_id": str(tid),
+                "team_name": team.get("team_name"),
+                "event_name": events.get(eid),
+                "leader_name": leaders.get(lid, {}).get("name"),
+                "leader_email": leaders.get(lid, {}).get("email"),
+                "number_of_members": len(members),
+                "remark": remark
+            })
+
+        result[session_db_name] = {
+            "count": len(session_result),
+            "data": session_result
+        }
+
+    return {
+        "success": True,
+        "data": result
+    }
+
+
+
 @router.get("/{year}")
 def get_all_teams_of_year(
     year: str,
@@ -123,6 +193,7 @@ def get_team_details(
             "event_name": event_name
         },
         "members": members_list,
+        "registered_on": team.get("registered_on"),
         "remark": team.get("remark")
     }
 
@@ -130,73 +201,4 @@ def get_team_details(
         "success": True,
         "year": year,
         "data": response
-    }
-
-
-
-@router.get("/all-teams")
-def get_all_teams_all_sessions(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-):
-    token = credentials.credentials
-    payload = verify_access_token(token)
-    verify_sudo_payload(payload)
-
-    result = {}
-
-    db_names = client.list_database_names()
-
-    for db_name in db_names:
-        if not DB_PATTERN.match(db_name):
-            continue
-
-        try:
-            session_db_name = verify_session_db(db_name)
-        except Exception:
-            continue
-
-        db = client[session_db_name]
-        team_collection = db["team"]
-        user_collection = db["user"]
-        event_collection = db["event"]
-
-        teams = list(team_collection.find({}))
-        if not teams:
-            result[session_db_name] = {"count": 0, "data": []}
-            continue
-
-        event_ids = list({team["event_id"] for team in teams})
-        leader_ids = list({team["leader_id"] for team in teams})
-
-        events = {e["_id"]: e.get("event_name") for e in event_collection.find(
-            {"_id": {"$in": event_ids}}, {"_id": 1, "event_name": 1})}
-        leaders = {u["_id"]: {"name": u.get("name"), "email": u.get("email")} for u in user_collection.find(
-            {"_id": {"$in": leader_ids}}, {"_id": 1, "name": 1, "email": 1})}
-
-        session_result = []
-        for team in teams:
-            tid = team["_id"]
-            eid = team["event_id"]
-            lid = team["leader_id"]
-            members = team.get("members", [])
-            remark = team.get("remark")
-
-            session_result.append({
-                "team_id": str(tid),
-                "team_name": team.get("team_name"),
-                "event_name": events.get(eid),
-                "leader_name": leaders.get(lid, {}).get("name"),
-                "leader_email": leaders.get(lid, {}).get("email"),
-                "number_of_members": len(members),
-                "remark": remark
-            })
-
-        result[session_db_name] = {
-            "count": len(session_result),
-            "data": session_result
-        }
-
-    return {
-        "success": True,
-        "data": result
     }

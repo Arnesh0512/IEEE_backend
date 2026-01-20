@@ -62,7 +62,8 @@ def signup_team(
     }
 
     team=team_collection.insert_one(team_data)
-    team_id = team["_id"]
+    team_id = team.inserted_id
+
 
     set_user_team(user_id, event_id, team_id)
     event_collection.update_one(

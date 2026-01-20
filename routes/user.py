@@ -23,7 +23,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
 
 @router.patch("/register")
 def signup_user(
-    user: UserCreate,
+    user_data: UserCreate,
     credentials: HTTPAuthorizationCredentials = Depends(security)
     ):
 
@@ -32,7 +32,7 @@ def signup_user(
     user,user_id ,email = verify_user_payload(payload)
     
     
-    update_data = user.model_dump(mode="json")
+    update_data = user_data.model_dump(mode="json")
     update_data["registered_event"] = []
 
     if email != update_data["email"].lower():
@@ -116,8 +116,9 @@ def get_user_details(credentials: HTTPAuthorizationCredentials = Depends(securit
     payload = verify_access_token(token)
     user,user_id ,email = verify_user_payload(payload)
 
-    del user["_id"]
-    del user["registered_event"]
+    user.pop("_id", None)
+    user.pop("registered_event", None)
+    user.pop("created_on",None)
 
     return {
         "success": True,
@@ -189,6 +190,7 @@ def get_registered_event(
     event.pop("remark", None)
     event.pop("remarked_user",None)
     event.pop("remarked_team",None)
+    event["event_thumbnail_id"] = str(event.get("event_thumbnail_id"))
 
     return {
         "success": True,
@@ -237,7 +239,7 @@ def get_team(
         "event_name": event["event_name"],
         "leader_name": leader["name"],
         "leader_email": leader["email"],
-        "team_created_on": team["created_on"],
+        "team_created_on": team["registered_on"],
         "members": members
     }
 
@@ -269,6 +271,7 @@ def get_this_session_events(
     events = []
     for event in events_cursor:
         event["_id"] = str(event["_id"])
+        event["event_thumbnail_id"] = str(event.get("event_thumbnail_id",None))
         events.append(event)
 
     return {
@@ -309,6 +312,8 @@ def get_all_archieved_events(
         events = []
         for event in events_cursor:
             event["_id"] = str(event["_id"])
+            event["event_thumbnail_id"] = str(event.get("event_thumbnail_id",None))
+
             events.append(event)
 
         archive_data[db_name] = events

@@ -44,6 +44,46 @@ def create_admin(
 
 
 
+@router.get("/all-admins")
+def get_all_admins_all_sessions(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    verify_superadmin_payload(payload)
+
+    result = {}
+    db = client["credentials"]
+    coll_names = db.list_collection_names()
+
+    for coll_name in coll_names:
+
+        if not coll_name.startswith("admin_"):
+            continue
+
+        session = coll_name[6:]
+
+        if not DB_PATTERN.match(session):
+            continue
+
+        admin_collection = db[coll_name]
+
+        admins = list(admin_collection.find())
+
+        for admin in admins:
+            admin["_id"] = str(admin["_id"])
+            if "created_by" in admin and "super_id" in admin["created_by"]:
+                admin["created_by"]["super_id"] = str(
+                    admin["created_by"]["super_id"]
+                )
+
+        result[session] = admins
+
+    return {
+        "success": True,
+        "data": result
+    }
+
 
 
 
@@ -75,40 +115,6 @@ def get_all_admins(
     }
 
 
-
-
-@router.get("/all/admins")
-def get_all_admins_all_sessions(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-):
-    token = credentials.credentials
-    payload = verify_access_token(token)
-    verify_superadmin_payload(payload)
-
-    result = {}
-
-    db = client["credentials"]
-    coll_names = db.list_collection_names()
-
-    for coll_name in coll_names:
-        if not DB_PATTERN.match(coll_name[5:]):
-            continue
-
-        admin_collection = db["coll_name"]
-
-        admins = list(admin_collection.find())
-
-        for admin in admins:
-            admin["_id"] = str(admin["_id"])
-            if "created_by" in admin and "super_id" in admin["created_by"]:
-                admin["created_by"]["super_id"] = str(admin["created_by"]["super_id"])
-
-        result[coll_name] = admins
-
-    return {
-        "success": True,
-        "data": result
-    }
 
 
 

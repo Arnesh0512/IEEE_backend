@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from database import event_collection, user_collection, team_collection
 from verify.token import verify_access_token
 from verify.sudo import verify_sudo_payload
@@ -65,6 +65,12 @@ def delete_user_remark(
     event, event_id=verify_event(event_id)
     verify_eventRegistry(event_id, user_id, "Y", user, event)
 
+    if user_id not in event["remarked_user"]:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No remark for this user yet for this event"
+        )
+
     user_collection.update_one(
     {
         "_id": user_id,
@@ -125,6 +131,11 @@ def delete_event_remark(
     verify_sudo_payload(payload)
 
     event, event_id=verify_event(event_id)
+    if event.get("remark") == None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="There is no remark for this event yet"
+        )
 
     event_collection.update_one(
     {
@@ -184,6 +195,11 @@ def delete_team_remark(
     verify_sudo_payload(payload)
 
     team, team_id=verify_team_by_id(team_id)
+    if team.get("remark") == None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="There is no remark for this team yet"
+        )
 
     team_collection.update_one(
     {

@@ -34,7 +34,7 @@ class EventCreate(BaseModel):
         duration: Optional[str] = Form(None),
         last_date_to_register: Optional[date] = Form(None),
         event_capacity: Optional[int] = Form(None),
-        event_type: Optional[Literal["free", "paid"]] = Form(None),
+        event_type: Optional[Literal["Free", "Paid"]] = Form(None),
         event_team_allowed: Optional[bool] = Form(None),
         event_team_size: Optional[int] = Form(None),
         venue: Optional[str] = Form(None),

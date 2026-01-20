@@ -2,7 +2,7 @@ from fastapi import HTTPException, status
 from database import user_collection, event_collection
 from bson import ObjectId
 from typing import Tuple
-from datetime import datetime, time
+from datetime import datetime, time, timezone
 
 
 
@@ -64,8 +64,14 @@ def verify_can_register(
                 detail="No more user can register"
             )
     
-    last_date = datetime.combine(event["last_date_to_register"], time(18,30,0))
-    today = datetime.now(datetime.timezone.utc)
+    last_date = event["last_date_to_register"]
+    last_date = datetime.fromisoformat(last_date).date()
+    last_date = datetime.combine(
+        last_date,
+        time(18, 30, 0),
+        tzinfo=timezone.utc
+    )
+    today = datetime.now(timezone.utc)
 
     if today>last_date:
         raise HTTPException(
