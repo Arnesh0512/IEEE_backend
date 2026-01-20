@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from verify.token import verify_access_token
 from verify.sudo import verify_sudo_payload
-from utils.pattern import verify_session_db
+from utils.pattern import verify_session_db, DB_PATTERN
 from bson import ObjectId
 from database import client
+
 
 security = HTTPBearer()
 router = APIRouter(prefix="/root/getUser", tags=["GetUser"])
@@ -136,4 +137,65 @@ def get_user_details(
         "success": True,
         "year": year,
         "data": user
+    }
+
+
+
+@router.get("/all-users")
+def get_all_users_all_sessions(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    verify_sudo_payload(payload)
+
+    result = {}
+
+    db_names = client.list_database_names()
+
+    for db_name in db_names:
+        if not DB_PATTERN.match(db_name):
+            continue
+
+        try:
+            session_db_name = verify_session_db(db_name)
+        except Exception:
+            continue
+
+        db = client[session_db_name]
+        user_collection = db["user"]
+
+        users_cursor = user_collection.find(
+            {},
+            {
+                "name": 1,
+                "email": 1,
+                "registered_event": 1
+            }
+        )
+
+        users = []
+        for user in users_cursor:
+            registered_events = user.get("registered_event", [])
+            no_of_events = len(registered_events)
+            no_of_teams = sum(1 for e in registered_events if e.get("team") is not None)
+            no_of_remarks = sum(1 for e in registered_events if "remark" in e)
+
+            users.append({
+                "user_id": str(user["_id"]),
+                "name": user.get("name"),
+                "email": user.get("email"),
+                "no_of_events": no_of_events,
+                "no_of_teams": no_of_teams,
+                "no_of_remarks": no_of_remarks
+            })
+
+        result[session_db_name] = {
+            "count": len(users),
+            "data": users
+        }
+
+    return {
+        "success": True,
+        "data": result
     }

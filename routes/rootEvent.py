@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from verify.token import verify_access_token
 from verify.sudo import verify_sudo_payload
-from utils.pattern import verify_session_db
+from utils.pattern import verify_session_db, DB_PATTERN
 from fastapi.responses import StreamingResponse
 from bson import ObjectId
 from database import client
@@ -169,4 +169,66 @@ def get_event_details(
         "success": True,
         "year": year,
         "data": event
+    }
+
+
+
+@router.get("/all-events")
+def get_all_events_all_sessions(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    verify_sudo_payload(payload)
+
+    result = {}
+
+    db_names = client.list_database_names()
+
+    for db_name in db_names:
+        if not DB_PATTERN.match(db_name):
+            continue
+
+        try:
+            session_db_name = verify_session_db(db_name)
+        except Exception:
+            continue
+
+        db = client[session_db_name]
+        event_collection = db["event"]
+
+        events_cursor = event_collection.find(
+            {},
+            {
+                "event_name": 1,
+                "event_date": 1,
+                "registered_user": 1,
+                "registered_team": 1,
+                "remarked_user": 1,
+                "remarked_team": 1,
+                "remark": 1
+            }
+        )
+
+        events = []
+        for event in events_cursor:
+            events.append({
+                "event_id": str(event["_id"]),
+                "event_name": event.get("event_name"),
+                "event_date": event.get("event_date"),
+                "no_of_registered_user": len(event.get("registered_user", [])),
+                "no_of_registered_team": len(event.get("registered_team", [])),
+                "no_of_remarked_user": len(event.get("remarked_user", [])),
+                "no_of_remarked_team": len(event.get("remarked_team", [])),
+                "remark": event.get("remark")
+            })
+
+        result[session_db_name] = {
+            "count": len(events),
+            "data": events
+        }
+
+    return {
+        "success": True,
+        "data": result
     }
