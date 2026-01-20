@@ -6,7 +6,7 @@ from schemas.user import UserCreate
 from utils.time import IST
 from verify.token import verify_access_token
 from verify.user import verify_user_payload
-from verify.event import verify_event, verify_eventRegistry
+from verify.event import verify_event, verify_eventRegistry, verify_can_register
 from verify.team import verify_team_by_id, verify_in_team
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from utils.pattern import DB_PATTERN, verify_session_db
@@ -63,6 +63,7 @@ def register_event(
 
 
     verify_eventRegistry(event_id, user_id, "N", user, event)
+    verify_can_register(event)
         
     user_collection.update_one(
         {"_id": user_id},

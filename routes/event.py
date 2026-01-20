@@ -28,6 +28,10 @@ def create_event(
 
     if event_data["event_team_allowed"] == True:
         event_data["registered_team"] = []
+        if event_data["event_team_size"]<=0:
+            event_data["event_team_size"]=1
+    else:
+        event_data["event_team_size"]=0
 
     if image:
 
@@ -84,11 +88,14 @@ def update_event(
 
     if update_data["event_team_allowed"] == True:
         update_data["registered_team"] = []
+        if update_data["event_team_size"]<=0:
+            update_data["event_team_size"]=1
     else:
         event_collection.update_one(
             {"_id":event_id},
             {"$unset":{"registered_team": ""}}
         )
+        update_data["event_team_size"]=0
 
     result = event_collection.update_one(
         {"_id": event_id},

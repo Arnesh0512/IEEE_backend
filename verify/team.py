@@ -159,4 +159,16 @@ def verify_in_team(
             detail="User is not in team"
         )
 
+def verify_team_size(
+        event: dict,
+        team:dict
+):
+    team_size = event["event_team_size"]-1
 
+    member_size = len(team["members"])
+
+    if team_size == member_size:
+        raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Team has reached max capacity"
+            )

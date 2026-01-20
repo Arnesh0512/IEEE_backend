@@ -5,7 +5,7 @@ from utils.time import IST
 from verify.token import verify_access_token
 from verify.user import verify_user_payload
 from verify.event import verify_event, verify_eventRegistry
-from verify.team import  verify_teamName , verify_teamMember, verify_teamLeader, verify_user_not_in_team, verify_is_team_allowed
+from verify.team import  verify_teamName , verify_teamMember, verify_teamLeader, verify_user_not_in_team, verify_is_team_allowed, verify_team_size
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from bson import ObjectId
 
@@ -91,6 +91,7 @@ def register_event(
     verify_user_not_in_team(user, event_id)
 
     team,team_name = verify_teamName(team_name, event_id, "Y")
+    verify_team_size(event,team)
     verify_teamMember(team, user_id, "N")
     team_id = team["_id"]
 

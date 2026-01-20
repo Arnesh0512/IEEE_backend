@@ -10,5 +10,6 @@ class AdminCreate(BaseModel):
     college_or_university: str
     course: str
     year: Literal[1, 2, 3, 4]
+    gender: Literal["M", "F", "O"]
     github_profile: Optional[HttpUrl] = None
     linkedin_profile: Optional[HttpUrl] = None

@@ -2,6 +2,7 @@ from fastapi import HTTPException, status
 from database import user_collection, event_collection
 from bson import ObjectId
 from typing import Tuple
+from datetime import datetime, time
 
 
 
@@ -54,3 +55,20 @@ def verify_eventRegistry(
             )
 
     
+def verify_can_register(
+        event:dict
+):
+    if event["event_capacity"] == len(event["registered_user"]):
+        raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No more user can register"
+            )
+    
+    last_date = datetime.combine(event["last_date_to_register"], time(18,30,0))
+    today = datetime.now(datetime.timezone.utc)
+
+    if today>last_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Registration deadline has passed"
+        )

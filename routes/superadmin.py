@@ -7,7 +7,7 @@ from verify.token import verify_access_token
 from verify.superadmin import verify_superadmin_payload
 from verify.admin import verify_admin, verify_admin_by_email
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from utils.pattern import verify_session_db, DB_PATTERN
+from utils.pattern import verify_admin_collection, DB_PATTERN
 
 security = HTTPBearer()
 
@@ -58,9 +58,9 @@ def get_all_admins(
     payload = verify_access_token(token)
     verify_superadmin_payload(payload)
 
-    db_name = verify_session_db(db_name)
-    db = client[db_name]
-    admin_collection = db["admins"]
+    coll_name = verify_admin_collection(db_name)
+    db = client["credentials"]
+    admin_collection = db[coll_name]
 
     admins = list(admin_collection.find())
 
@@ -87,14 +87,13 @@ def get_all_admins_all_sessions(
 
     result = {}
 
-    db_names = client.list_database_names()
+    db = client["credentials"]
+    coll_names = db.list_collection_names()
 
-    for db_name in db_names:
-        if not DB_PATTERN.match(db_name):
-            continue
+    for coll_name in coll_names:
+        coll_name = verify_admin_collection(coll_name[5:])
 
-        db = client[db_name]
-        admin_collection = db["admins"]
+        admin_collection = db["coll_name"]
 
         admins = list(admin_collection.find())
 
@@ -103,7 +102,7 @@ def get_all_admins_all_sessions(
             if "created_by" in admin and "super_id" in admin["created_by"]:
                 admin["created_by"]["super_id"] = str(admin["created_by"]["super_id"])
 
-        result[db_name] = admins
+        result[coll_name] = admins
 
     return {
         "success": True,
