@@ -79,6 +79,36 @@ def register_event(
 
 
 
+
+
+@router.delete("/unregister-event")
+def unregister_event(
+    event_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    user, user_id, email = verify_user_payload(payload)
+    event, event_id = verify_event(event_id)
+
+    verify_eventRegistry(event_id, user_id, "Y", user, event)
+
+    user_collection.update_one(
+        {"_id": user_id},
+        {"$pull": {"registered_event": {"event_id": event_id}}}
+    )
+
+    event_collection.update_one(
+        {"_id": event_id},
+        {"$pull": {"registered_user": user_id}}
+    )
+
+    return {"message": "Event unregistered successfully"}
+
+
+
+
+
 @router.get("/profile")
 def get_user_details(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
@@ -156,6 +186,8 @@ def get_registered_event(
     event.pop("registered_user", None)
     event.pop("registered_team", None)
     event.pop("remark", None)
+    event.pop("remarked_user",None)
+    event.pop("remarked_team",None)
 
     return {
         "success": True,
@@ -227,7 +259,9 @@ def get_this_session_events(
         {
             "registered_user": 0,
             "registered_team": 0,
-            "remark": 0
+            "remark": 0,
+            "remarked_user":0,
+            "remarked_team":0
         }
     )
 
@@ -265,7 +299,9 @@ def get_all_archieved_events(
             {
                 "registered_user": 0,
                 "registered_team": 0,
-                "remark": 0
+                "remark": 0,
+                "remarked_user":0,
+                "remarked_team":0
             }
         )
 

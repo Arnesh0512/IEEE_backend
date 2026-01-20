@@ -38,6 +38,14 @@ def create_user_remark(
         }
     }
     )
+    event_collection.update_one(
+    {"_id": event_id},
+    {
+        "$addToSet": {
+            "remarked_user": user_id
+        }
+    }
+    )
     
     return {"message": "Remark added"}
 
@@ -68,6 +76,14 @@ def delete_user_remark(
         }
     }
     )
+    event_collection.update_one(
+    {"_id": event_id},
+    {
+        "$pull": {
+            "remarked_user": user_id
+        }
+    }
+    )
     
     return {"message": "Remark deleted"}
 
@@ -94,6 +110,7 @@ def add_event_remark(
         }
     }
     )
+    
     
     return {"message": "Remark added"}
 
@@ -145,6 +162,14 @@ def add_team_remark(
         }
     }
     )
+    event_collection.update_one(
+    {"_id": team["event_id"]},
+    {
+        "$addToSet": {
+            "remarked_team": team_id
+        }
+    }
+    )
     
     return {"message": "Remark added"}
 
@@ -167,6 +192,14 @@ def delete_team_remark(
     {
         "$unset": {
             "remark": ""
+        }
+    }
+    )
+    event_collection.update_one(
+    {"_id": team["event_id"]},
+    {
+        "$pull": {
+            "remarked_team": team_id
         }
     }
     )

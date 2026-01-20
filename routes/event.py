@@ -11,6 +11,8 @@ security = HTTPBearer()
 
 router = APIRouter(prefix="/root/events", tags=["Events"])
 
+MAX_IMAGE_SIZE = 50 * 1024
+
 @router.post("")
 def create_event(
     event: EventCreate = Depends(EventCreate.convert_to_form),
@@ -28,6 +30,14 @@ def create_event(
         event_data["registered_team"] = []
 
     if image:
+
+        image.file.seek(0, 2)
+        size = image.file.tell()
+        image.file.seek(0)
+        if size > MAX_IMAGE_SIZE:
+            raise HTTPException(status_code=400, detail="Image size exceeds 50KB")
+
+
         file_id = fs.put(
             image.file,
             filename=image.filename,
@@ -56,6 +66,14 @@ def update_event(
 
     update_data = event.model_dump(exclude_none=True)
     if image:
+
+        image.file.seek(0, 2)
+        size = image.file.tell()
+        image.file.seek(0)
+        if size > MAX_IMAGE_SIZE:
+            raise HTTPException(status_code=400, detail="Image size exceeds 50KB")
+
+
         if "event_thumbnail_id" in event:
             fs.delete(ObjectId(event["event_thumbnail_id"]))
         file_id = fs.put(image.file)

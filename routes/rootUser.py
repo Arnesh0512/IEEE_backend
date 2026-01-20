@@ -1,15 +1,15 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from verify.token import verify_access_token
 from verify.sudo import verify_sudo_payload
-from verify.user import verify_user_by_id
 from utils.pattern import verify_session_db
+from bson import ObjectId
 from database import client
 
 security = HTTPBearer()
-router = APIRouter(prefix="/get", tags=["Get"])
+router = APIRouter(prefix="/root/getUser", tags=["GetUser"])
 
-@router.get("/{year}/users")
+@router.get("/{year}")
 def get_all_users_of_year(
     year: str,
     credentials: HTTPAuthorizationCredentials = Depends(security)
@@ -65,7 +65,7 @@ def get_all_users_of_year(
 
 
 
-@router.get("/{year}/users/{user_id}")
+@router.get("/{year}/{user_id}")
 def get_user_details(
     year: str,
     user_id: str,
@@ -75,37 +75,31 @@ def get_user_details(
     payload = verify_access_token(token)
     verify_sudo_payload(payload)
 
-    user, user_id, user_email = verify_user_by_id(user_id, "Y")
-
     year = verify_session_db(year)
     db = client[year]
 
+    user_collection = db["user"]
     event_collection = db["event"]
     team_collection = db["team"]
 
-    event_map = {
-        e["_id"]: e.get("event_name")
-        for e in event_collection.find(
-            {},
-            {"_id": 1, "event_name": 1}
-        )
-    }
+    if not ObjectId.is_valid(user_id):
+        raise HTTPException(status_code=400, detail="Invalid user_id")
+    user_oid = ObjectId(user_id)
 
-    team_map = {
-        t["_id"]: t
-        for t in team_collection.find(
-            {},
-            {
-                "_id": 1,
-                "team_name": 1,
-                "leader_id": 1,
-                "members": 1
-            }
-        )
-    }
+    user = user_collection.find_one({"_id": user_oid})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    event_ids = [reg["event_id"] for reg in user.get("registered_event", []) if reg.get("event_id")]
+    team_ids = [reg["team"] for reg in user.get("registered_event", []) if reg.get("team")]
+
+    events = event_collection.find({"_id": {"$in": event_ids}}, {"_id": 1, "event_name": 1})
+    teams = team_collection.find({"_id": {"$in": team_ids}}, {"_id": 1, "team_name": 1, "leader_id": 1, "members": 1})
+
+    event_map = {e["_id"]: e.get("event_name") for e in events}
+    team_map = {t["_id"]: t for t in teams}
 
     enriched_registered_events = []
-
     for reg in user.get("registered_event", []):
         event_id = reg.get("event_id")
         team_id = reg.get("team")
@@ -120,9 +114,9 @@ def get_user_details(
             team = team_map[team_id]
             team_name = team.get("team_name")
 
-            if team.get("leader_id") == user_id:
+            if team.get("leader_id") == user_oid:
                 role = "leader"
-            elif user_id in team.get("members", []):
+            elif user_oid in team.get("members", []):
                 role = "member"
 
         enriched_registered_events.append({
@@ -135,12 +129,11 @@ def get_user_details(
             "role": role
         })
 
+    user["_id"] = str(user["_id"])
+    user["registered_event"] = enriched_registered_events
+
     return {
         "success": True,
         "year": year,
-        "user_details": {
-            "user_id": str(user_id),
-            "email": user_email,
-            "registered_event": enriched_registered_events
-        }
+        "data": user
     }
