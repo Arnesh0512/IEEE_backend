@@ -22,9 +22,9 @@ def set_user_team(
     team_id: ObjectId | None
 ):
     if team_id is None:
-        update = {"$unset": {"registered_event.$.team": ""}}
+        update = {"$unset": {"registered_event.$.team_id": ""}}
     else:
-        update = {"$set": {"registered_event.$.team": team_id}}
+        update = {"$set": {"registered_event.$.team_id": team_id}}
 
     user_collection = current_user_collection()
     user_collection.update_one(

@@ -172,7 +172,7 @@ def get_registered_events_teams(credentials: HTTPAuthorizationCredentials = Depe
 
     for reg in user.get("registered_event", []):
         event_id = str(reg["event_id"])
-        team_id = str(reg.get("team")) if reg.get("team") else None
+        team_id = str(reg.get("team_id")) if reg.get("team_id") else None
         if team_id:
             if user_id == team_map.get(team_id,{}).get("leader_id"):
                 role = "leader"

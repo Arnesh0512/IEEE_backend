@@ -50,7 +50,7 @@ def get_all_users_all_sessions(
         for user in users_cursor:
             registered_events = user.get("registered_event", [])
             no_of_events = len(registered_events)
-            no_of_teams = sum(1 for e in registered_events if e.get("team") is not None)
+            no_of_teams = sum(1 for e in registered_events if e.get("team_id") is not None)
             no_of_remarks = sum(1 for e in registered_events if "remark" in e)
 
             users.append({
@@ -103,7 +103,7 @@ def get_all_users_of_year(
         no_of_events = len(registered_events)
 
         no_of_teams = sum(
-            1 for e in registered_events if e.get("team") is not None
+            1 for e in registered_events if e.get("team_id") is not None
         )
 
         no_of_remarks = sum(
@@ -155,7 +155,7 @@ def get_user_details(
         raise HTTPException(status_code=404, detail="User not found")
 
     event_ids = [reg["event_id"] for reg in user.get("registered_event", []) if reg.get("event_id")]
-    team_ids = [reg["team"] for reg in user.get("registered_event", []) if reg.get("team")]
+    team_ids = [reg["team_id"] for reg in user.get("registered_event", []) if reg.get("team_id")]
 
     events = event_collection.find({"_id": {"$in": event_ids}}, {"_id": 1, "event_name": 1})
     teams = team_collection.find({"_id": {"$in": team_ids}}, {"_id": 1, "team_name": 1, "leader_id": 1, "members": 1})
@@ -166,7 +166,7 @@ def get_user_details(
     enriched_registered_events = []
     for reg in user.get("registered_event", []):
         event_id = reg.get("event_id")
-        team_id = reg.get("team")
+        team_id = reg.get("team_id")
         remark = reg.get("remark")
         registered_on = reg.get("registered_on")
 

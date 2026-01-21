@@ -106,7 +106,7 @@ def verify_user_not_in_team(
     for reg in user.get("registered_event", []):
         if (
             reg.get("event_id") == event_id
-            and "team" in reg
+            and "team_id" in reg
         ):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
