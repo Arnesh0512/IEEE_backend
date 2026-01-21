@@ -1,12 +1,14 @@
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from bson import ObjectId
-from database import current_event_collection, current_fs_collection
+from database import current_event_collection, current_fs_collection, current_team_collection, current_user_collection
 from schemas.event import EventCreate
 from verify.token import verify_access_token
 from verify.sudo import verify_sudo_payload
 from verify.event import verify_event
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from datetime import date, time
+from datetime import date, time, datetime
+from utils.time import IST
+
 
 
 security = HTTPBearer()
@@ -80,6 +82,8 @@ def create_event(
             content_type=image.content_type
         )
         event_data["event_thumbnail_id"] = str(file_id)
+
+    event_data["created_on"] = datetime.now(IST).isoformat()
 
     event_collection = current_event_collection()
     event_collection.insert_one(event_data)
@@ -157,7 +161,8 @@ def update_event(
 
 
 @router.delete("/{event_id}")
-def delete_event(event_id: str,
+def delete_event(
+    event_id: str,
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     token = credentials.credentials
@@ -165,15 +170,38 @@ def delete_event(event_id: str,
     verify_sudo_payload(payload)
 
     event, event_id = verify_event(event_id)
-    
+
     event_collection = current_event_collection()
+    team_collection = current_team_collection()
+    user_collection = current_user_collection()
     fs = current_fs_collection()
-    
+
     if "event_thumbnail_id" in event:
         fs.delete(ObjectId(event["event_thumbnail_id"]))
 
-    event_collection.delete_one({"_id": event_id})
-    return {"message": "Event deleted"}
+    team_collection.delete_many(
+        {"event_id": event_id}
+    )
+
+    user_collection.update_many(
+        {},
+        {
+            "$pull": {
+                "registered_event": {
+                    "event_id": event_id
+                }
+            }
+        }
+    )
+
+    event_collection.delete_one(
+        {"_id": event_id}
+    )
+
+    return {
+        "message": "Event deleted successfully",
+        "event_id": str(event_id)
+    }
 
 
 

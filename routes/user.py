@@ -53,6 +53,39 @@ def signup_user(
 
 
 
+
+
+
+
+
+
+@router.patch("/change-details")
+def signup_user(
+    user_data: UserCreate,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+    ):
+
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    user,user_id ,email = verify_user_payload(payload)
+    
+    
+    update_data = user_data.model_dump(mode="json")
+
+    if email != update_data["email"].lower():
+        raise HTTPException(status_code=404, detail="Email Mismatch found")
+
+    user_collection = current_user_collection()
+    user_collection.update_one(
+        {"_id": user_id},
+        {"$set": update_data}
+    )
+
+    return {"message": "User details changed successfully"}
+
+
+
+
 @router.patch("/register-event")
 def register_event(
     event_id: str,
@@ -211,6 +244,7 @@ def get_registered_event(
     event.pop("remark", None)
     event.pop("remarked_user",None)
     event.pop("remarked_team",None)
+    event.pop("created_on", None)
     event["event_thumbnail_id"] = str(event.get("event_thumbnail_id"))
 
     return {
@@ -288,7 +322,8 @@ def get_this_session_events(
             "registered_team": 0,
             "remark": 0,
             "remarked_user":0,
-            "remarked_team":0
+            "remarked_team":0,
+            "created_on":0
         }
     )
 
@@ -329,7 +364,8 @@ def get_all_archieved_events(
                 "registered_team": 0,
                 "remark": 0,
                 "remarked_user":0,
-                "remarked_team":0
+                "remarked_team":0,
+                "created_on":0
             }
         )
 
