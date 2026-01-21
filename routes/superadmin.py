@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from datetime import datetime
-from database import admin_collection, client
+from database import current_admin_collection, client
 from schemas.admin import AdminCreate
 from utils.time import IST
 from verify.token import verify_access_token
@@ -33,6 +33,7 @@ def create_admin(
 
     verify_admin_by_email(admin_data["email"], "N")
 
+    admin_collection = current_admin_collection()
     admin_collection.insert_one(admin_data)
 
 
@@ -136,6 +137,7 @@ def delete_admin(
 
     admin, admin_obj_id, admin_email = verify_admin(admin_id, email, "Y")
 
+    admin_collection = current_admin_collection()
     result = admin_collection.delete_one({
         "_id": admin_obj_id,
         "email": admin_email

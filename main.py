@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routes import user, event, auth, superadmin, team, remarks, rootTeam, rootEvent, rootUser
+from routes import user, admin, event, auth, superadmin, team, remarks, rootTeam, rootEvent, rootUser
 from fastapi.middleware.cors import CORSMiddleware
 from utils.reader import Frontend
 
@@ -23,3 +23,4 @@ app.include_router(remarks.router)
 app.include_router(rootTeam.router)
 app.include_router(rootUser.router)
 app.include_router(rootEvent.router)
+app.include_router(admin.router)

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from datetime import datetime, date
-from database import user_collection
+from database import current_user_collection
 from utils.time import IST
 from verify.token import verify_google_token,create_access_token
 from verify.admin import verify_admin_by_email
@@ -14,6 +14,7 @@ def google_auth_user(data: dict):
     idinfo = verify_google_token(data)
     email = idinfo["email"].lower()
 
+    user_collection = current_user_collection()
     user = user_collection.find_one({"email": email})
     if user:
         user_id = str(user["_id"])

@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from database import superadmin_collection
+from database import current_superadmin_collection
 from bson import ObjectId
 from bson.errors import InvalidId
 from typing import Tuple
@@ -39,6 +39,7 @@ def verify_superadmin(superadmin_id: str, email: str, type:str) -> Tuple[dict|No
             detail="Invalid superadmin id"
         )
 
+    superadmin_collection = current_superadmin_collection()
     superadmin = superadmin_collection.find_one({
         "_id": superadmin_obj_id,
         "email": email
@@ -68,6 +69,7 @@ def verify_superadmin(superadmin_id: str, email: str, type:str) -> Tuple[dict|No
 def verify_superadmin_by_email(email: str, type: str) -> Tuple[dict|None, ObjectId|None, str]:
     email = email.lower()
 
+    superadmin_collection = current_superadmin_collection()
     superadmin = superadmin_collection.find_one({
         "email": email
     })
@@ -103,6 +105,7 @@ def verify_superadmin_by_id(superadmin_id: str, type: str) -> Tuple[dict|None, O
             detail="Invalid superadmin id"
         )
 
+    superadmin_collection = current_superadmin_collection()
     superadmin = superadmin_collection.find_one({
         "_id": superadmin_obj_id,
     })

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from database import event_collection, user_collection, team_collection
+from database import current_event_collection, current_user_collection, current_team_collection
 from verify.token import verify_access_token
 from verify.sudo import verify_sudo_payload
 from verify.event import verify_event, verify_eventRegistry
@@ -27,6 +27,7 @@ def create_user_remark(
     event, event_id=verify_event(event_id)
     verify_eventRegistry(event_id, user_id, "Y", user, event)
 
+    user_collection = current_user_collection()
     user_collection.update_one(
     {
         "_id": user_id,
@@ -38,6 +39,7 @@ def create_user_remark(
         }
     }
     )
+    event_collection = current_event_collection()
     event_collection.update_one(
     {"_id": event_id},
     {
@@ -71,6 +73,7 @@ def delete_user_remark(
             detail="No remark for this user yet for this event"
         )
 
+    user_collection = current_user_collection()
     user_collection.update_one(
     {
         "_id": user_id,
@@ -82,6 +85,7 @@ def delete_user_remark(
         }
     }
     )
+    event_collection = current_event_collection()
     event_collection.update_one(
     {"_id": event_id},
     {
@@ -106,6 +110,7 @@ def add_event_remark(
 
     event, event_id=verify_event(event_id)
 
+    event_collection = current_event_collection()
     event_collection.update_one(
     {
         "_id": event_id
@@ -137,6 +142,7 @@ def delete_event_remark(
             detail="There is no remark for this event yet"
         )
 
+    event_collection = current_event_collection()
     event_collection.update_one(
     {
         "_id": event_id
@@ -163,6 +169,7 @@ def add_team_remark(
 
     team, team_id=verify_team_by_id(team_id)
 
+    team_collection = current_team_collection()
     team_collection.update_one(
     {
         "_id": team_id
@@ -173,6 +180,7 @@ def add_team_remark(
         }
     }
     )
+    event_collection = current_event_collection()
     event_collection.update_one(
     {"_id": team["event_id"]},
     {
@@ -201,6 +209,7 @@ def delete_team_remark(
             detail="There is no remark for this team yet"
         )
 
+    team_collection = current_team_collection()
     team_collection.update_one(
     {
         "_id": team_id
@@ -211,6 +220,7 @@ def delete_team_remark(
         }
     }
     )
+    event_collection = current_event_collection()
     event_collection.update_one(
     {"_id": team["event_id"]},
     {

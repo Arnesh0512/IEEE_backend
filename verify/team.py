@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from database import user_collection, team_collection, event_collection
+from database import current_team_collection
 from bson import ObjectId
 from typing import Tuple
 
@@ -9,6 +9,7 @@ from typing import Tuple
 def verify_teamName(team_name: str, event_id: ObjectId, type:str) -> Tuple[dict|None, str]:
     team_name = team_name.strip().lower()
 
+    team_collection = current_team_collection()
     team = team_collection.find_one({
         "event_id": event_id,
         "team_name": team_name
@@ -133,6 +134,7 @@ def verify_team_by_id(team_id: str) -> Tuple[dict,ObjectId]:
     
     team_oid = ObjectId(team_id)
 
+    team_collection = current_team_collection()
     team = team_collection.find_one({"_id": team_oid})
     if not team:
         raise HTTPException(

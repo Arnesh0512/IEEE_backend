@@ -1,6 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from bson import ObjectId
-from database import event_collection, fs
+from database import current_event_collection, current_fs_collection
 from schemas.event import EventCreate
 from verify.token import verify_access_token
 from verify.sudo import verify_sudo_payload
@@ -73,7 +73,7 @@ def create_event(
         if size > MAX_IMAGE_SIZE:
             raise HTTPException(status_code=400, detail="Image size exceeds 50KB")
 
-
+        fs = current_fs_collection()
         file_id = fs.put(
             image.file,
             filename=image.filename,
@@ -81,6 +81,7 @@ def create_event(
         )
         event_data["event_thumbnail_id"] = str(file_id)
 
+    event_collection = current_event_collection()
     event_collection.insert_one(event_data)
     return {"message": "Event created"}
 
@@ -112,6 +113,7 @@ def update_event(
         if size > MAX_IMAGE_SIZE:
             raise HTTPException(status_code=400, detail="Image size exceeds 50KB")
 
+        fs = current_fs_collection()
         if "event_thumbnail_id" in event:
             fs.delete(ObjectId(event["event_thumbnail_id"]))
 
@@ -119,6 +121,8 @@ def update_event(
         update_data["event_thumbnail_id"] = str(file_id)
 
     team_allowed = update_data.get("event_team_allowed")
+
+    event_collection = current_event_collection()
 
     if team_allowed is True:
         update_data["registered_team"] = []
@@ -162,7 +166,9 @@ def delete_event(event_id: str,
 
     event, event_id = verify_event(event_id)
     
-
+    event_collection = current_event_collection()
+    fs = current_fs_collection()
+    
     if "event_thumbnail_id" in event:
         fs.delete(ObjectId(event["event_thumbnail_id"]))
 

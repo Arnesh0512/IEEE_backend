@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from datetime import datetime
-from database import team_collection, user_collection, event_collection
+from database import current_team_collection, current_user_collection, current_event_collection
 from utils.time import IST
 from verify.token import verify_access_token
 from verify.user import verify_user_payload
@@ -26,6 +26,7 @@ def set_user_team(
     else:
         update = {"$set": {"registered_event.$.team": team_id}}
 
+    user_collection = current_user_collection()
     user_collection.update_one(
         {"_id": user_id, "registered_event.event_id": event_id},
         update
@@ -61,10 +62,12 @@ def signup_team(
         "registered_on":datetime.now(IST).isoformat()
     }
 
+    team_collection = current_team_collection()
     team=team_collection.insert_one(team_data)
     team_id = team.inserted_id
 
 
+    event_collection = current_event_collection()
     set_user_team(user_id, event_id, team_id)
     event_collection.update_one(
         {"_id": event_id},
@@ -96,6 +99,7 @@ def register_event(
     verify_teamMember(team, user_id, "N")
     team_id = team["_id"]
 
+    team_collection = current_team_collection()
     team_collection.update_one(
         {"_id":team_id},
         {"$push":{
@@ -131,9 +135,10 @@ def delete_team(
     for member_id in team["members"]:
         set_user_team(member_id, event_id, None)
 
-
+    team_collection = current_team_collection()
     team_collection.delete_one({"_id": team_id})
 
+    event_collection = current_event_collection()
     event_collection.update_one(
         {"_id": event_id},
         {"$pull": {"registered_team":team_id}}
@@ -160,7 +165,7 @@ def leave_team(
     verify_teamMember(team, user_id, "Y")
     team_id = team["_id"]
 
-
+    team_collection = current_team_collection()
     team_collection.update_one(
         {"_id": team_id},
         {"$pull": {"members": user_id}}

@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from database import user_collection
+from database import current_user_collection
 from bson import ObjectId
 from bson.errors import InvalidId
 from typing import Tuple
@@ -39,6 +39,7 @@ def verify_user(user_id: str, email: str, type:str) -> Tuple[dict|None, ObjectId
             detail="Invalid user id"
         )
 
+    user_collection = current_user_collection()
     user = user_collection.find_one({
         "_id": user_obj_id,
         "email": email
@@ -68,6 +69,7 @@ def verify_user(user_id: str, email: str, type:str) -> Tuple[dict|None, ObjectId
 def verify_user_by_email(email: str, type: str) -> Tuple[dict|None, ObjectId|None, str]:
     email = email.lower()
 
+    user_collection = current_user_collection()
     user = user_collection.find_one({
         "email": email
     })
@@ -103,6 +105,7 @@ def verify_user_by_id(user_id: str, type: str) -> Tuple[dict|None, ObjectId, str
             detail="Invalid user id"
         )
 
+    user_collection = current_user_collection()
     user = user_collection.find_one({
         "_id": user_obj_id,
     })

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from datetime import datetime
-from database import client,fs, user_collection, event_collection, team_collection
+from database import client,current_fs_collection, current_user_collection, current_event_collection, current_team_collection
 from schemas.user import UserCreate
 from utils.time import IST
 from verify.token import verify_access_token
@@ -30,6 +30,9 @@ def signup_user(
     token = credentials.credentials
     payload = verify_access_token(token)
     user,user_id ,email = verify_user_payload(payload)
+    if len(user)>4:
+        raise HTTPException(status_code=404, detail="User Already Registered")
+
     
     
     update_data = user_data.model_dump(mode="json")
@@ -38,6 +41,7 @@ def signup_user(
     if email != update_data["email"].lower():
         raise HTTPException(status_code=404, detail="Email Mismatch found")
 
+    user_collection = current_user_collection()
     user_collection.update_one(
         {"_id": user_id},
         {"$set": update_data}
@@ -65,11 +69,13 @@ def register_event(
     verify_eventRegistry(event_id, user_id, "N", user, event)
     verify_can_register(event)
         
+    user_collection = current_user_collection()
     user_collection.update_one(
         {"_id": user_id},
         {"$push": {"registered_event": {"event_id": event_id,"registered_on": timestamp}}}
     )
         
+    event_collection = current_event_collection()
     event_collection.update_one(
         {"_id": event_id},
         {"$push": {"registered_user": user_id}}
@@ -94,11 +100,13 @@ def unregister_event(
 
     verify_eventRegistry(event_id, user_id, "Y", user, event)
 
+    user_collection = current_user_collection()
     user_collection.update_one(
         {"_id": user_id},
         {"$pull": {"registered_event": {"event_id": event_id}}}
     )
 
+    event_collection = current_event_collection()
     event_collection.update_one(
         {"_id": event_id},
         {"$pull": {"registered_user": user_id}}
@@ -132,16 +140,19 @@ def get_registered_events_teams(credentials: HTTPAuthorizationCredentials = Depe
     payload = verify_access_token(token)
     user,user_id ,email = verify_user_payload(payload)
 
+    event_collection = current_event_collection()
     event = event_collection.find(
         {},
         {"_id":1,
          "event_name":1})
     
+    team_collection = current_team_collection()
     team = team_collection.find(
         {},
         {"_id":1,
          "team_name":1,
-         "registered_on":1})
+         "registered_on":1,
+         "leader_id":1})
     
     event_map = {
         str(e["_id"]): e["event_name"]
@@ -151,7 +162,8 @@ def get_registered_events_teams(credentials: HTTPAuthorizationCredentials = Depe
     team_map = {
         str(t["_id"]): {
             "team_name": t["team_name"],
-            "team_created_on": t.get("registered_on")
+            "team_created_on": t.get("registered_on"),
+            "leader_id": t.get("leader_id")
         }
         for t in team
     }
@@ -161,6 +173,14 @@ def get_registered_events_teams(credentials: HTTPAuthorizationCredentials = Depe
     for reg in user.get("registered_event", []):
         event_id = str(reg["event_id"])
         team_id = str(reg.get("team")) if reg.get("team") else None
+        if team_id:
+            if user_id == team_map.get(team_id,{}).get("leader_id"):
+                role = "leader"
+            else:
+                role = "member"
+        else:
+            role=None
+
 
         result.append({
             "event_id": event_id,
@@ -168,7 +188,8 @@ def get_registered_events_teams(credentials: HTTPAuthorizationCredentials = Depe
             "registered_for_event_on": reg.get("registered_on"),
             "team_id": team_id,
             "team_name": team_map.get(team_id, {}).get("team_name"),
-            "team_created_on": team_map.get(team_id, {}).get("team_created_on")
+            "team_created_on": team_map.get(team_id, {}).get("team_created_on"),
+            "role":role
         })
 
     return {"registered_event": result}
@@ -211,11 +232,13 @@ def get_team(
     verify_in_team(team, user_id)
 
 
+    event_collection = current_event_collection()
     event = event_collection.find_one(
         {"_id": team["event_id"]},
         {"event_name": 1}
     )
 
+    user_collection = current_user_collection()
     leader = user_collection.find_one(
         {"_id": team["leader_id"]},
         {"name": 1, "email": 1}
@@ -257,6 +280,7 @@ def get_this_session_events(
     payload = verify_access_token(token)
     user,user_id, email = verify_user_payload(payload)
 
+    event_collection = current_event_collection()
     events_cursor = event_collection.find(
         {},
         {
@@ -333,7 +357,7 @@ def get_image_current_year(
     payload = verify_access_token(token)
     user, user_id, email = verify_user_payload(payload)
 
-
+    fs = current_fs_collection()
     try:
         grid_out = fs.get(ObjectId(image_id))
     except Exception:
