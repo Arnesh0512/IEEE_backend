@@ -127,6 +127,8 @@ def update_event(
     team_allowed = update_data.get("event_team_allowed")
 
     event_collection = current_event_collection()
+    team_collection = current_team_collection()
+    user_collection = current_user_collection()
 
     if team_allowed is True:
         update_data["registered_team"] = []
@@ -134,10 +136,20 @@ def update_event(
             update_data["event_team_size"] = 1
 
     elif team_allowed is False:
+
+        team_collection.delete_many(
+            {"event_id": event_id}
+        )
+        user_collection.update_many(
+            {"registered_event.event_id": event_id},
+            {"$unset": {"registered_event.$[].team_id": ""}}
+        )
         event_collection.update_one(
             {"_id": event_id},
-            {"$unset": {"registered_team": ""}}
+            {"$unset": {"registered_team": ""},
+             "$unset": {"remarked_team": ""}}
         )
+
         update_data["event_team_size"] = 0
 
     if update_data:

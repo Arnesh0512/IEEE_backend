@@ -122,6 +122,12 @@ def verify_is_team_allowed(event: dict):
             status_code=status.HTTP_409_CONFLICT,
             detail="Team registration not allowed"
         )
+    
+    if event.get("event_status") == "Completed":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Event has been completed"
+        )
 
     
 
