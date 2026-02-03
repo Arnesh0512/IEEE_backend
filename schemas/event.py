@@ -24,6 +24,8 @@ class EventCreate(BaseModel):
 
     event_status: Optional[Literal["Ongoing", "Completed"]] = None
 
+    event_prizes: Optional[str] = None
+
     @classmethod
     def convert_to_form(
         cls,
@@ -40,6 +42,7 @@ class EventCreate(BaseModel):
         venue: Optional[str] = Form(None),
         person_incharge: Optional[str] = Form(None),
         event_status: Optional[Literal["Ongoing", "Completed"]] = Form(None),
+        event_prizes: Optional[str] = Form(None),
     ):
         return cls(
             event_name=event_name,
@@ -55,4 +58,5 @@ class EventCreate(BaseModel):
             venue=venue,
             person_incharge=person_incharge,
             event_status=event_status,
+            event_prizes=event_prizes,
         )
